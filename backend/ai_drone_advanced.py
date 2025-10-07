@@ -25,8 +25,8 @@ class AdvancedAIDrone:
             difficulty: 난이도 ('easy', 'normal', 'hard', 'extreme')
         """
         self.drone_id = drone_id
-        self.position = np.array(initial_position, dtype=np.float32)
-        self.velocity = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.position = np.array(initial_position, dtype=float)
+        self.velocity = np.array([0.0, 0.0, 0.0], dtype=float)
         
         # 난이도 설정
         self.difficulty = difficulty
@@ -54,7 +54,7 @@ class AdvancedAIDrone:
         # 회피 기동
         self.evasive_maneuver_active = False
         self.evasive_maneuver_timer = 0
-        self.evasive_direction = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.evasive_direction = np.array([0.0, 0.0, 0.0], dtype=float)
         
         # 학습 메모리 (간단한 강화학습)
         self.memory = {
@@ -140,7 +140,7 @@ class AdvancedAIDrone:
         if current_time - self.last_behavior_change < self.behavior_change_interval:
             return
         
-        target_pos = np.array(player_position, dtype=np.float32)
+        target_pos = np.array(player_position, dtype=float)
         distance = np.linalg.norm(target_pos - self.position)
         hp_ratio = self.hp / self.max_hp
         player_hp_ratio = player_hp / 100.0
@@ -182,7 +182,7 @@ class AdvancedAIDrone:
             self.evasive_maneuver_timer = 2.5
             
             # 랜덤 회피 방향 (위로 도망)
-            self.evasive_direction = np.random.randn(3).astype(np.float32)
+            self.evasive_direction = np.random.randn(3).astype(float)
             self.evasive_direction[1] = abs(self.evasive_direction[1]) * 2  # 위로 크게
             length = np.linalg.norm(self.evasive_direction)
             if length > 0:
@@ -207,7 +207,7 @@ class AdvancedAIDrone:
                 self.evasive_maneuver_active = False
         
         # 플레이어 방향 계산
-        target_position = np.array(player_position, dtype=np.float32)
+        target_position = np.array(player_position, dtype=float)
         direction_to_player = target_position - self.position
         distance_to_player = np.linalg.norm(direction_to_player)
         
@@ -243,7 +243,7 @@ class AdvancedAIDrone:
                 if self.evasive_maneuver_active:
                     desired_velocity = self.evasive_direction * self.max_speed * 1.3
                 else:
-                    escape_direction = -direction_normalized + np.random.randn(3).astype(np.float32) * 0.3
+                    escape_direction = -direction_normalized + np.random.randn(3).astype(float) * 0.3
                     escape_direction[1] = abs(escape_direction[1])  # 위로
                     escape_length = np.linalg.norm(escape_direction)
                     if escape_length > 0:
@@ -251,9 +251,9 @@ class AdvancedAIDrone:
                     desired_velocity = escape_direction * self.max_speed * 1.1
             
             # 장애물 회피
-            avoidance_force = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+            avoidance_force = np.array([0.0, 0.0, 0.0], dtype=float)
             for obstacle in obstacles:
-                obs_pos = np.array(obstacle['position'], dtype=np.float32)
+                obs_pos = np.array(obstacle['position'], dtype=float)
                 to_obstacle = obs_pos - self.position
                 dist_to_obstacle = np.linalg.norm(to_obstacle)
                 
@@ -289,7 +289,7 @@ class AdvancedAIDrone:
         if not self.is_alive or not self.can_fire_missile(current_time):
             return False
         
-        target_pos = np.array(player_position, dtype=np.float32)
+        target_pos = np.array(player_position, dtype=float)
         distance = np.linalg.norm(target_pos - self.position)
         
         # 사거리 및 행동 패턴 고려
@@ -314,11 +314,11 @@ class AdvancedAIDrone:
     
     def get_firing_direction(self, player_position: List[float], player_velocity: List[float] = None) -> List[float]:
         """예측 사격 (향상된 정확도)"""
-        target_pos = np.array(player_position, dtype=np.float32)
+        target_pos = np.array(player_position, dtype=float)
         
         # 예측 사격
         if player_velocity is not None and self.aim_accuracy > 0.6:
-            player_vel = np.array(player_velocity, dtype=np.float32)
+            player_vel = np.array(player_velocity, dtype=float)
             distance = np.linalg.norm(target_pos - self.position)
             missile_speed = 2.5
             prediction_time = distance / missile_speed
@@ -380,13 +380,13 @@ class AdvancedAIDrone:
         self.evasive_maneuver_active = False
         
         if position is not None:
-            self.position = np.array(position, dtype=np.float32)
+            self.position = np.array(position, dtype=float)
         else:
             # 랜덤 위치
-            self.position = np.random.uniform(-80, 80, 3).astype(np.float32)
+            self.position = np.random.uniform(-80, 80, 3).astype(float)
             self.position[1] = np.random.uniform(10, 30)
         
-        self.velocity = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.velocity = np.array([0.0, 0.0, 0.0], dtype=float)
     
     def get_state(self) -> Dict:
         """현재 상태 반환"""

@@ -46,16 +46,16 @@ class PhysicsEngine:
         Returns:
             CollisionResult
         """
-        pos = np.array(position, dtype=np.float32)
-        vel = np.array(velocity, dtype=np.float32)
+        pos = np.array(position, dtype=float)
+        vel = np.array(velocity, dtype=float)
         speed = np.linalg.norm(vel)
         
         for obstacle in obstacles:
-            obs_pos = np.array(obstacle['position'], dtype=np.float32)
+            obs_pos = np.array(obstacle['position'], dtype=float)
             obs_size = obstacle.get('size', [2, 2, 2])
             
             # AABB (Axis-Aligned Bounding Box) 충돌 감지
-            half_size = np.array(obs_size, dtype=np.float32) / 2
+            half_size = np.array(obs_size, dtype=float) / 2
             collision_radius = 2.0  # 드론 반경
             
             # 각 축별 거리 계산
@@ -126,8 +126,8 @@ class PhysicsEngine:
         Returns:
             CollisionResult
         """
-        pos = np.array(position, dtype=np.float32)
-        vel = np.array(velocity, dtype=np.float32)
+        pos = np.array(position, dtype=float)
+        vel = np.array(velocity, dtype=float)
         
         collided = False
         bounce_velocity = vel.copy()
@@ -177,8 +177,8 @@ class PhysicsEngine:
         Returns:
             최종 데미지
         """
-        exp_pos = np.array(explosion_position, dtype=np.float32)
-        target_pos = np.array(target_position, dtype=np.float32)
+        exp_pos = np.array(explosion_position, dtype=float)
+        target_pos = np.array(target_position, dtype=float)
         
         distance = np.linalg.norm(target_pos - exp_pos)
         

@@ -26,8 +26,8 @@ class AIDrone:
             difficulty: 난이도 ('easy', 'normal', 'hard')
         """
         self.drone_id = drone_id
-        self.position = np.array(initial_position, dtype=np.float32)
-        self.velocity = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.position = np.array(initial_position, dtype=float)
+        self.velocity = np.array([0.0, 0.0, 0.0], dtype=float)
         
         # 난이도 설정
         self.difficulty = difficulty
@@ -122,7 +122,7 @@ class AIDrone:
             return self.get_state()
         
         # 1. 플레이어를 향한 방향 벡터 계산
-        target_position = np.array(player_position, dtype=np.float32)
+        target_position = np.array(player_position, dtype=float)
         direction_to_player = target_position - self.position
         distance_to_player = np.linalg.norm(direction_to_player)
         
@@ -146,9 +146,9 @@ class AIDrone:
                 desired_velocity = perpendicular * self.max_speed * 0.8
             
             # 3. 장애물 회피 로직 (간단한 반발력)
-            avoidance_force = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+            avoidance_force = np.array([0.0, 0.0, 0.0], dtype=float)
             for obstacle in obstacles:
-                obs_pos = np.array(obstacle['position'], dtype=np.float32)
+                obs_pos = np.array(obstacle['position'], dtype=float)
                 to_obstacle = obs_pos - self.position
                 dist_to_obstacle = np.linalg.norm(to_obstacle)
                 
@@ -229,7 +229,7 @@ class AIDrone:
             return False
         
         # 플레이어와의 거리 계산
-        target_pos = np.array(player_position, dtype=np.float32)
+        target_pos = np.array(player_position, dtype=float)
         distance = np.linalg.norm(target_pos - self.position)
         
         # 사거리 내에 있고, 쿨다운이 끝났으면 발사
@@ -253,11 +253,11 @@ class AIDrone:
         Returns:
             발사 방향 벡터 (정규화됨)
         """
-        target_pos = np.array(player_position, dtype=np.float32)
+        target_pos = np.array(player_position, dtype=float)
         
         # 예측 사격: 플레이어의 이동을 예측
         if player_velocity is not None:
-            player_vel = np.array(player_velocity, dtype=np.float32)
+            player_vel = np.array(player_velocity, dtype=float)
             # 미사일 속도를 고려한 예측 시간
             distance = np.linalg.norm(target_pos - self.position)
             missile_speed = 2.0  # 미사일 속도 (game_mechanics.py와 일치)
@@ -293,13 +293,13 @@ class AIDrone:
         self.is_alive = True
         
         if position is not None:
-            self.position = np.array(position, dtype=np.float32)
+            self.position = np.array(position, dtype=float)
         else:
             # 랜덤 위치로 리스폰
-            self.position = np.random.uniform(-40, 40, 3).astype(np.float32)
+            self.position = np.random.uniform(-40, 40, 3).astype(float)
             self.position[1] = np.random.uniform(5, 20)  # y 좌표는 5~20 사이
         
-        self.velocity = np.array([0.0, 0.0, 0.0], dtype=np.float32)
+        self.velocity = np.array([0.0, 0.0, 0.0], dtype=float)
     
     def get_state(self) -> Dict:
         """현재 AI 드론 상태 반환"""

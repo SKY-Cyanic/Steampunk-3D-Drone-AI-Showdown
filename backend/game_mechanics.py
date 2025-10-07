@@ -83,8 +83,8 @@ class CombatSystem:
         missile_id = f"missile_{uuid.uuid4().hex[:8]}"
         
         # 위치와 속도를 numpy 배열로 변환
-        pos = np.array(position, dtype=np.float32)
-        dir_normalized = np.array(direction, dtype=np.float32)
+        pos = np.array(position, dtype=float)
+        dir_normalized = np.array(direction, dtype=float)
         
         # 방향 벡터 정규화
         dir_length = np.linalg.norm(dir_normalized)
@@ -135,7 +135,7 @@ class CombatSystem:
             target_position: 타겟 위치
             target_radius: 타겟 충돌 반경
         """
-        target_pos = np.array(target_position, dtype=np.float32)
+        target_pos = np.array(target_position, dtype=float)
         distance = np.linalg.norm(missile.position - target_pos)
         
         return distance <= (self.hit_detection_radius + target_radius)

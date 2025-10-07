@@ -42,10 +42,10 @@ class GuidedMissile:
         """
         self.missile_id = missile_id
         self.owner_id = owner_id
-        self.position = np.array(position, dtype=np.float32)
+        self.position = np.array(position, dtype=float)
         
         # 방향 정규화
-        direction = np.array(initial_direction, dtype=np.float32)
+        direction = np.array(initial_direction, dtype=float)
         direction_length = np.linalg.norm(direction)
         if direction_length > 0:
             direction = direction / direction_length
@@ -88,7 +88,7 @@ class GuidedMissile:
         
         # 유도 미사일이고 타겟이 있으면 방향 조정
         if self.is_guided and target_position is not None:
-            target_pos = np.array(target_position, dtype=np.float32)
+            target_pos = np.array(target_position, dtype=float)
             
             # 타겟을 향한 방향
             to_target = target_pos - self.position

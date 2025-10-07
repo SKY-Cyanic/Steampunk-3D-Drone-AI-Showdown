@@ -3,27 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚁 3D 드론 AI 대전 시뮬레이터 - 고도화</title>
+    <title>🚁 3D 드론 AI 대전</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; overflow: hidden; background: #000; }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
-            background: #000;
-        }
-        
-        #game-container {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-        
-        /* HP 바 스타일 */
         .hp-bar-container {
             position: absolute;
             width: 350px;
@@ -32,36 +17,46 @@
             border-radius: 25px;
             padding: 5px;
             border: 2px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
         }
         
         .hp-bar-fill {
             height: 100%;
             border-radius: 20px;
-            transition: width 0.3s ease, background-color 0.3s ease;
+            transition: width 0.3s ease;
             display: flex;
             align-items: center;
             justify-content: center;
             color: white;
             font-weight: bold;
             font-size: 16px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-            box-shadow: inset 0 2px 10px rgba(255, 255, 255, 0.3);
         }
         
-        #player-hp-bar {
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+        #player-hp-bar { top: 20px; left: 50%; transform: translateX(-50%); }
+        #ai-hp-container { bottom: 20px; left: 50%; transform: translateX(-50%); width: 350px; }
+        
+        .ai-hp-bar {
+            width: 100%;
+            height: 35px;
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 20px;
+            padding: 4px;
+            margin: 5px 0;
+            border: 2px solid rgba(255, 100, 100, 0.3);
         }
         
-        #ai-hp-bar {
-            bottom: 20px;
-            left: 50%;
-            transform: translateX(-50%);
+        .ai-hp-fill {
+            height: 100%;
+            border-radius: 15px;
+            background: linear-gradient(90deg, #ef4444, #dc2626);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
         }
         
-        /* 정보 패널 */
         #info-panel {
             position: absolute;
             top: 80px;
@@ -72,49 +67,23 @@
             border-radius: 15px;
             font-size: 14px;
             z-index: 100;
-            min-width: 300px;
+            min-width: 280px;
             backdrop-filter: blur(15px);
             border: 2px solid rgba(74, 222, 128, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
         }
         
-        #info-panel h2 {
-            font-size: 20px;
-            margin-bottom: 12px;
-            color: #4ade80;
-            border-bottom: 2px solid #4ade80;
-            padding-bottom: 8px;
-            text-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
-        }
+        #info-panel h2 { color: #4ade80; margin-bottom: 12px; }
+        .stat { margin: 8px 0; display: flex; justify-content: space-between; }
+        .stat .label { color: #94a3b8; }
+        .stat .value { color: #4ade80; font-weight: bold; }
         
-        .stat {
-            margin: 10px 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .stat .label {
-            color: #94a3b8;
-        }
-        
-        .stat .value {
-            color: #4ade80;
-            font-weight: bold;
-        }
-        
-        /* 티어 표시 */
         .tier-badge {
-            display: inline-block;
             padding: 5px 15px;
             border-radius: 15px;
             font-size: 13px;
             font-weight: bold;
-            text-transform: uppercase;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
         }
         
-        /* 레벨 & 경험치 바 */
         .exp-bar-container {
             width: 100%;
             height: 18px;
@@ -122,17 +91,14 @@
             border-radius: 10px;
             margin-top: 10px;
             overflow: hidden;
-            box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.5);
         }
         
         .exp-bar-fill {
             height: 100%;
             background: linear-gradient(90deg, #4ade80, #22c55e);
             transition: width 0.5s ease;
-            box-shadow: 0 0 10px rgba(74, 222, 128, 0.5);
         }
         
-        /* 점수 패널 */
         #score-panel {
             position: absolute;
             top: 20px;
@@ -142,174 +108,64 @@
             padding: 20px;
             border-radius: 15px;
             z-index: 100;
-            backdrop-filter: blur(15px);
             border: 2px solid rgba(255, 215, 0, 0.5);
-            min-width: 220px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            min-width: 200px;
         }
         
-        #score-panel h2 {
-            color: #ffd700;
-            font-size: 20px;
-            margin-bottom: 12px;
-            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
-        }
+        #score-panel h2 { color: #ffd700; font-size: 18px; margin-bottom: 10px; }
+        .score-value { font-size: 32px; font-weight: bold; color: #ffd700; text-align: center; }
         
-        .score-value {
-            font-size: 36px;
-            font-weight: bold;
-            color: #ffd700;
-            text-align: center;
-            text-shadow: 0 0 15px rgba(255, 215, 0, 0.7);
-            margin: 10px 0;
-        }
-        
-        /* 난이도 선택 */
-        #difficulty-selector {
-            position: absolute;
-            top: 80px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.85);
-            color: white;
-            padding: 15px;
-            border-radius: 15px;
-            z-index: 100;
-            backdrop-filter: blur(15px);
-            border: 2px solid rgba(147, 51, 234, 0.5);
-            min-width: 220px;
-        }
-        
-        #difficulty-selector h3 {
-            color: #a78bfa;
-            margin-bottom: 10px;
-            font-size: 16px;
-        }
-        
-        .difficulty-btn {
-            width: 100%;
-            padding: 10px;
-            margin: 5px 0;
-            border: none;
-            border-radius: 8px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-            font-size: 14px;
-        }
-        
-        .difficulty-btn.easy {
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-        }
-        
-        .difficulty-btn.normal {
-            background: linear-gradient(135deg, #3b82f6, #2563eb);
-            color: white;
-        }
-        
-        .difficulty-btn.hard {
-            background: linear-gradient(135deg, #f59e0b, #d97706);
-            color: white;
-        }
-        
-        .difficulty-btn.extreme {
-            background: linear-gradient(135deg, #ef4444, #dc2626);
-            color: white;
-        }
-        
-        .difficulty-btn:hover {
-            transform: scale(1.05);
-            box-shadow: 0 4px 15px rgba(255, 255, 255, 0.3);
-        }
-        
-        .difficulty-btn.active {
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.6);
-            transform: scale(1.1);
-        }
-        
-        /* 업그레이드 패널 */
         #upgrade-panel {
             position: absolute;
             bottom: 20px;
             right: 20px;
             background: rgba(0, 0, 0, 0.85);
             color: white;
-            padding: 18px;
+            padding: 15px;
             border-radius: 15px;
             z-index: 100;
-            backdrop-filter: blur(15px);
+            max-width: 300px;
             border: 2px solid rgba(147, 51, 234, 0.5);
-            max-width: 320px;
         }
         
-        #upgrade-panel h3 {
-            color: #a78bfa;
-            margin-bottom: 12px;
-            font-size: 18px;
-            text-shadow: 0 0 10px rgba(167, 139, 250, 0.5);
-        }
+        #upgrade-panel h3 { color: #a78bfa; margin-bottom: 10px; }
         
         .upgrade-item {
             background: rgba(255, 255, 255, 0.1);
-            padding: 10px;
-            margin: 6px 0;
+            padding: 8px;
+            margin: 5px 0;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
-            align-items: center;
             cursor: pointer;
             transition: all 0.2s;
-            border: 1px solid rgba(255, 255, 255, 0.2);
         }
         
-        .upgrade-item:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateX(5px);
-            box-shadow: 0 4px 15px rgba(167, 139, 250, 0.3);
-        }
+        .upgrade-item:hover { background: rgba(255, 255, 255, 0.2); }
+        .upgrade-cost { color: #ffd700; font-weight: bold; }
         
-        .upgrade-item.disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        
-        .upgrade-cost {
-            color: #ffd700;
-            font-weight: bold;
-        }
-        
-        /* 조작법 */
         #controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
             background: rgba(0, 0, 0, 0.85);
             color: white;
-            padding: 18px;
+            padding: 15px;
             border-radius: 15px;
-            font-size: 13px;
+            font-size: 12px;
             z-index: 100;
-            backdrop-filter: blur(15px);
             border: 2px solid rgba(96, 165, 250, 0.3);
         }
         
-        #controls h3 {
-            margin-bottom: 12px;
-            color: #60a5fa;
-            text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
-        }
-        
+        #controls h3 { margin-bottom: 10px; color: #60a5fa; }
         .key {
-            display: inline-block;
             background: rgba(255, 255, 255, 0.15);
-            padding: 5px 10px;
+            padding: 4px 8px;
             border-radius: 5px;
-            margin: 3px;
+            margin: 2px;
             border: 1px solid rgba(255, 255, 255, 0.3);
-            font-weight: bold;
         }
         
-        /* 알림 메시지 */
         #notification {
             position: absolute;
             top: 50%;
@@ -323,868 +179,444 @@
             font-weight: bold;
             z-index: 2000;
             display: none;
-            text-align: center;
             border: 3px solid #4ade80;
-            box-shadow: 0 10px 50px rgba(74, 222, 128, 0.5);
-            animation: notificationPulse 0.5s ease-in-out;
         }
         
-        @keyframes notificationPulse {
-            0%, 100% { transform: translate(-50%, -50%) scale(1); }
-            50% { transform: translate(-50%, -50%) scale(1.05); }
-        }
-        
-        /* 로딩 */
         #loading {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             color: white;
-            font-size: 28px;
+            font-size: 24px;
             z-index: 200;
-            text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
         }
         
-        /* 연결 상태 */
         #status {
             position: absolute;
             top: 20px;
-            left: 50%;
-            transform: translateX(-300px);
+            left: 20px;
             background: rgba(0, 0, 0, 0.85);
             color: white;
-            padding: 12px 20px;
-            border-radius: 25px;
-            font-size: 13px;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
             z-index: 100;
-            backdrop-filter: blur(15px);
             border: 2px solid rgba(255, 255, 255, 0.2);
         }
         
         .status-dot {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            margin-right: 10px;
-            animation: pulse 2s ease-in-out infinite;
+            margin-right: 8px;
         }
         
-        .status-dot.green {
-            background: #4ade80;
-            box-shadow: 0 0 15px rgba(74, 222, 128, 0.8);
-        }
-        
-        .status-dot.red {
-            background: #ef4444;
-            box-shadow: 0 0 15px rgba(239, 68, 68, 0.8);
-        }
-        
-        @keyframes pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.6; transform: scale(0.9); }
-        }
-        
-        /* 미니맵 */
-        #minimap {
-            position: absolute;
-            bottom: 120px;
-            right: 20px;
-            width: 200px;
-            height: 200px;
-            background: rgba(0, 0, 0, 0.7);
-            border: 2px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            z-index: 100;
-        }
-        
-        #minimap canvas {
-            width: 100%;
-            height: 100%;
-        }
+        .status-dot.green { background: #4ade80; box-shadow: 0 0 10px #4ade80; }
+        .status-dot.red { background: #ef4444; box-shadow: 0 0 10px #ef4444; }
     </style>
 </head>
 <body>
     <div id="game-container">
-        <div id="loading">🚁 게임 로딩 중...</div>
+        <div id="loading">🚁 로딩 중...</div>
         
-        <!-- 플레이어 HP 바 -->
         <div id="player-hp-bar" class="hp-bar-container">
             <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%; background: linear-gradient(90deg, #4ade80, #22c55e);">
                 <span id="player-hp-text">100 / 100</span>
             </div>
         </div>
         
-        <!-- AI HP 바 -->
-        <div id="ai-hp-bar" class="hp-bar-container">
-            <div class="hp-bar-fill" id="ai-hp-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #dc2626);">
-                <span id="ai-hp-text">AI: 100 / 100</span>
-            </div>
-        </div>
+        <div id="ai-hp-container"></div>
         
-        <!-- 정보 패널 -->
         <div id="info-panel">
-            <h2>👤 플레이어 정보</h2>
-            <div class="stat">
-                <span class="label">레벨:</span>
-                <span class="value" id="player-level">1</span>
-            </div>
-            <div class="stat">
-                <span class="label">티어:</span>
-                <span class="tier-badge" id="player-tier">Bronze</span>
-            </div>
-            <div class="stat">
-                <span class="label">코인:</span>
-                <span class="value" id="player-coins">0 💰</span>
-            </div>
-            <div class="exp-bar-container">
-                <div class="exp-bar-fill" id="exp-bar" style="width: 0%;"></div>
-            </div>
-            <div class="stat" style="font-size: 12px; margin-top: 5px;">
-                <span id="exp-text">0 / 100 EXP</span>
-            </div>
+            <h2>👤 플레이어</h2>
+            <div class="stat"><span class="label">레벨:</span><span class="value" id="player-level">1</span></div>
+            <div class="stat"><span class="label">티어:</span><span class="tier-badge" id="player-tier">Bronze</span></div>
+            <div class="stat"><span class="label">코인:</span><span class="value" id="player-coins">0 💰</span></div>
+            <div class="exp-bar-container"><div class="exp-bar-fill" id="exp-bar" style="width: 0%;"></div></div>
+            <div class="stat" style="font-size: 11px;"><span id="exp-text">0 / 100 EXP</span></div>
         </div>
         
-        <!-- 점수 패널 -->
         <div id="score-panel">
-            <h2>🏆 전투 기록</h2>
-            <div class="stat">
-                <span class="label">킬:</span>
-                <span class="value" id="kill-count">0</span>
-            </div>
-            <div class="stat">
-                <span class="label">점수:</span>
-                <span class="score-value" id="score-value">0</span>
-            </div>
+            <h2>🏆 전투</h2>
+            <div class="stat"><span class="label">킬:</span><span class="value" id="kill-count">0</span></div>
+            <div class="stat"><span class="label">점수:</span><span class="score-value" id="score-value">0</span></div>
         </div>
         
-        <!-- 난이도 선택 -->
-        <div id="difficulty-selector">
-            <h3>🎯 AI 난이도</h3>
-            <button class="difficulty-btn easy" data-difficulty="easy">
-                🟢 Easy
-            </button>
-            <button class="difficulty-btn normal active" data-difficulty="normal">
-                🔵 Normal
-            </button>
-            <button class="difficulty-btn hard" data-difficulty="hard">
-                🟠 Hard
-            </button>
-            <button class="difficulty-btn extreme" data-difficulty="extreme">
-                🔴 Extreme
-            </button>
-        </div>
-        
-        <!-- 업그레이드 패널 -->
         <div id="upgrade-panel">
             <h3>⚡ 업그레이드</h3>
-            <div class="upgrade-item" data-type="speed">
-                <span>🚀 속도 Lv.<span class="upgrade-level">0</span></span>
-                <span class="upgrade-cost">100 💰</span>
-            </div>
-            <div class="upgrade-item" data-type="armor">
-                <span>🛡️ 방어력 Lv.<span class="upgrade-level">0</span></span>
-                <span class="upgrade-cost">100 💰</span>
-            </div>
-            <div class="upgrade-item" data-type="damage">
-                <span>⚔️ 공격력 Lv.<span class="upgrade-level">0</span></span>
-                <span class="upgrade-cost">100 💰</span>
-            </div>
-            <div class="upgrade-item" data-type="fire_rate">
-                <span>⚡ 발사속도 Lv.<span class="upgrade-level">0</span></span>
-                <span class="upgrade-cost">100 💰</span>
-            </div>
+            <div class="upgrade-item" data-type="speed"><span>🚀 속도 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="armor"><span>🛡️ 방어 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="damage"><span>⚔️ 공격 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="fire_rate"><span>⚡ 연사 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
         </div>
         
-        <!-- 조작법 -->
         <div id="controls">
-            <h3>⌨️ 조작법</h3>
-            <div>
-                <span class="key">W</span> 전진 |
-                <span class="key">S</span> 후진 |
-                <span class="key">A</span> 좌측 |
-                <span class="key">D</span> 우측
-            </div>
-            <div style="margin-top: 10px;">
-                <span class="key">Space</span> 상승 |
-                <span class="key">Shift</span> 하강
-            </div>
-            <div style="margin-top: 10px;">
-                <span class="key">F</span> 미사일 발사 🚀
-            </div>
+            <h3>⌨️ 조작</h3>
+            <div><span class="key">W/A/S/D</span> 이동 | <span class="key">Space</span> 상승 | <span class="key">Shift</span> 하강</div>
+            <div style="margin-top: 8px;"><span class="key">F</span> 미사일 발사 | <span class="key">마우스 드래그</span> 카메라 회전</div>
         </div>
         
-        <!-- 연결 상태 -->
-        <div id="status">
-            <span class="status-dot red"></span>
-            <span id="status-text">서버 연결 중...</span>
-        </div>
-        
-        <!-- 알림 -->
+        <div id="status"><span class="status-dot red"></span><span id="status-text">연결 중...</span></div>
         <div id="notification"></div>
     </div>
 
-    <!-- Three.js CDN -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     
     <script>
-        console.log('🎮 3D 드론 AI 대전 시뮬레이터 - 고도화 버전 시작!');
-        console.log('✨ 새로운 기능: 물리 엔진, 대형 맵, AI 고도화, 그래픽 개선');
-        
-        // ========== 전역 변수 ==========
         let scene, camera, renderer;
-        let playerDrone, aiDrone;
+        let playerDrone;
+        let aiDrones = {};  // 여러 AI 지원
         let obstacles = [];
         let missiles = {};
         let explosions = [];
         let particles = [];
-        let websocket;
-        let isConnected = false;
-        let clientId, aiDroneId;
-        let currentDifficulty = 'normal';
+        let websocket, isConnected = false;
+        let clientId, aiIds = [];
         
-        // 플레이어 데이터
-        let playerData = {
-            position: { x: 0, y: 15, z: 60 },
-            velocity: { x: 0, y: 0, z: 0 },
-            hp: 100,
-            max_hp: 100,
-            level: 1,
-            exp: 0,
-            coins: 0,
-            tier: 'Bronze'
-        };
+        let playerData = { position: {x:0, y:15, z:60}, velocity: {x:0, y:0, z:0}, hp: 100, max_hp: 100, level: 1, exp: 0, coins: 0, tier: 'Bronze' };
+        let aiDataMap = {};
         
-        // AI 데이터
-        let aiData = {
-            position: { x: -10, y: 15, z: -10 },
-            hp: 100,
-            max_hp: 100,
-            behavior_mode: 'aggressive'
-        };
-        
-        // 게임 설정 (향상된 물리)
         let keys = {};
-        const MOVE_SPEED = 0.4;
-        const MAX_SPEED = 1.2;
-        const ACCELERATION = 0.07;
-        const DRAG = 0.93;
-        const MAP_SIZE = 200;
+        const ACCELERATION = 0.07, MAX_SPEED = 1.2, DRAG = 0.93, MAP_SIZE = 200;
         
-        // FPS
-        let lastTime = performance.now();
+        // 카메라 회전
+        let cameraRotationX = 0, cameraRotationY = 0;
+        let isDragging = false, lastMouseX = 0, lastMouseY = 0;
         let frameCount = 0;
-        let fps = 60;
-
-        // ========== Three.js 초기화 (고도화) ==========
+        
         function initThreeJS() {
-            // Scene
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0e27);
             scene.fog = new THREE.Fog(0x0a0e27, 80, 180);
             
-            // Camera
-            camera = new THREE.PerspectiveCamera(
-                80,  // 더 넓은 시야각
-                window.innerWidth / window.innerHeight,
-                0.1,
-                500
-            );
+            camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.set(0, 25, 50);
-            camera.lookAt(0, 15, 0);
             
-            // Renderer (고품질)
-            renderer = new THREE.WebGLRenderer({ 
-                antialias: true,
-                alpha: false
-            });
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-            renderer.toneMapping = THREE.ACESFilmicToneMapping;
-            renderer.toneMappingExposure = 1.2;
             document.getElementById('game-container').appendChild(renderer.domElement);
             
-            // 고급 조명 시스템
-            setupLighting();
+            // 조명
+            scene.add(new THREE.AmbientLight(0x404060, 0.4));
+            const sun = new THREE.DirectionalLight(0xffffff, 1.2);
+            sun.position.set(100, 100, 50);
+            sun.castShadow = true;
+            scene.add(sun);
             
-            // 바닥 (개선된 텍스처)
-            createGround();
-            
-            // 드론 생성
-            createPlayerDrone();
-            createAIDrone();
-            
-            // 파티클 시스템 초기화
-            initParticleSystem();
-            
-            window.addEventListener('resize', onWindowResize);
-            
-            console.log('✅ Three.js 초기화 완료! (고도화)');
-        }
-        
-        function setupLighting() {
-            // 환경광
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.4);
-            scene.add(ambientLight);
-            
-            // 주 방향광 (태양)
-            const sunLight = new THREE.DirectionalLight(0xffffff, 1.2);
-            sunLight.position.set(100, 100, 50);
-            sunLight.castShadow = true;
-            sunLight.shadow.camera.left = -100;
-            sunLight.shadow.camera.right = 100;
-            sunLight.shadow.camera.top = 100;
-            sunLight.shadow.camera.bottom = -100;
-            sunLight.shadow.camera.near = 0.5;
-            sunLight.shadow.camera.far = 500;
-            sunLight.shadow.mapSize.width = 2048;
-            sunLight.shadow.mapSize.height = 2048;
-            sunLight.shadow.bias = -0.001;
-            scene.add(sunLight);
-            
-            // 보조 채움광
-            const fillLight = new THREE.DirectionalLight(0x4466ff, 0.5);
-            fillLight.position.set(-50, 30, -50);
-            scene.add(fillLight);
-            
-            // 스팀펑크 분위기 포인트 라이트 (여러 개)
-            const pointLightPositions = [
-                { pos: [30, 20, 30], color: 0xff6b35, intensity: 3 },
-                { pos: [-40, 25, -40], color: 0x4ecdc4, intensity: 3 },
-                { pos: [60, 15, -60], color: 0xf39c12, intensity: 2.5 },
-                { pos: [-60, 18, 60], color: 0x9b59b6, intensity: 2.5 },
-                { pos: [0, 30, 0], color: 0xe74c3c, intensity: 4 }
+            const lights = [
+                [30, 20, 30, 0xff6b35], [-40, 25, -40, 0x4ecdc4],
+                [60, 15, -60, 0xf39c12], [-60, 18, 60, 0x9b59b6]
             ];
-            
-            pointLightPositions.forEach(({ pos, color, intensity }) => {
-                const light = new THREE.PointLight(color, intensity, 80);
-                light.position.set(...pos);
+            lights.forEach(([x, y, z, color]) => {
+                const light = new THREE.PointLight(color, 3, 80);
+                light.position.set(x, y, z);
                 scene.add(light);
-                
-                // 라이트 헬퍼 (시각적 효과)
-                const sphereGeom = new THREE.SphereGeometry(0.5, 8, 8);
-                const sphereMat = new THREE.MeshBasicMaterial({ 
-                    color: color,
-                    transparent: true,
-                    opacity: 0.6
-                });
-                const sphere = new THREE.Mesh(sphereGeom, sphereMat);
-                sphere.position.set(...pos);
-                scene.add(sphere);
-            });
-        }
-        
-        function createGround() {
-            const groundSize = MAP_SIZE;
-            const groundGeometry = new THREE.PlaneGeometry(groundSize, groundSize, 50, 50);
-            
-            // 지형 고도 변화 (약간의 언덕)
-            const positions = groundGeometry.attributes.position;
-            for (let i = 0; i < positions.count; i++) {
-                const x = positions.getX(i);
-                const z = positions.getZ(i);
-                const height = Math.sin(x * 0.02) * Math.cos(z * 0.02) * 2;
-                positions.setY(i, height);
-            }
-            positions.needsUpdate = true;
-            groundGeometry.computeVertexNormals();
-            
-            const groundMaterial = new THREE.MeshStandardMaterial({
-                color: 0x1e293b,
-                roughness: 0.9,
-                metalness: 0.1,
-                flatShading: false
             });
             
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            // 바닥
+            const groundGeom = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, 50, 50);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
             ground.rotation.x = -Math.PI / 2;
-            ground.position.y = 0;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // 그리드 (더 큰 맵)
-            const gridHelper = new THREE.GridHelper(groundSize, 40, 0x4ecdc4, 0x2d3561);
-            gridHelper.position.y = 0.1;
-            scene.add(gridHelper);
+            const grid = new THREE.GridHelper(MAP_SIZE, 40, 0x4ecdc4, 0x2d3561);
+            scene.add(grid);
+            
+            createPlayerDrone();
+            
+            // 마우스 이벤트
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                cameraRotationY += (e.clientX - lastMouseX) * 0.005;
+                cameraRotationX += (e.clientY - lastMouseY) * 0.005;
+                cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/6, cameraRotationX));
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+            
+            // 터치 이벤트
+            let lastTouchX = 0, lastTouchY = 0;
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) {
+                    cameraRotationY += (e.touches[0].clientX - lastTouchX) * 0.005;
+                    cameraRotationX += (e.touches[0].clientY - lastTouchY) * 0.005;
+                    cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/6, cameraRotationX));
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                    e.preventDefault();
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            console.log('✅ Three.js 초기화!');
         }
         
         function createPlayerDrone() {
-            const bodyGeometry = new THREE.BoxGeometry(2.5, 0.6, 2.5);
-            const bodyMaterial = new THREE.MeshStandardMaterial({
-                color: 0x4ade80,
-                emissive: 0x2dd4bf,
-                emissiveIntensity: 0.4,
-                metalness: 0.8,
-                roughness: 0.2
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            const bodyGeom = new THREE.BoxGeometry(2.5, 0.6, 2.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4ade80, emissive: 0x2dd4bf, emissiveIntensity: 0.4, metalness: 0.8, roughness: 0.2 });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
             body.castShadow = true;
-            
-            // 프로펠러 (개선된 디자인)
-            const propellerGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.12, 12);
-            const propellerMaterial = new THREE.MeshStandardMaterial({
-                color: 0x1e293b,
-                metalness: 0.9,
-                roughness: 0.1,
-                emissive: 0x3b82f6,
-                emissiveIntensity: 0.2
-            });
-            
-            const propellerPositions = [
-                { x: 1.2, z: 1.2 },
-                { x: -1.2, z: 1.2 },
-                { x: 1.2, z: -1.2 },
-                { x: -1.2, z: -1.2 }
-            ];
             
             playerDrone = new THREE.Group();
             playerDrone.add(body);
             
-            propellerPositions.forEach(pos => {
-                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
-                propeller.position.set(pos.x, 0.5, pos.z);
-                propeller.userData.rotationSpeed = Math.random() * 0.6 + 0.6;
-                playerDrone.add(propeller);
-                
-                // 프로펠러 광선 효과
-                const lightGeom = new THREE.SphereGeometry(0.3, 8, 8);
-                const lightMat = new THREE.MeshBasicMaterial({
-                    color: 0x4ade80,
-                    transparent: true,
-                    opacity: 0.5
-                });
-                const lightSphere = new THREE.Mesh(lightGeom, lightMat);
-                lightSphere.position.set(pos.x, 0.5, pos.z);
-                playerDrone.add(lightSphere);
+            const propGeom = new THREE.CylinderGeometry(0.6, 0.6, 0.12, 12);
+            const propMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.1 });
+            
+            [[1.2,1.2], [-1.2,1.2], [1.2,-1.2], [-1.2,-1.2]].forEach(([x,z]) => {
+                const prop = new THREE.Mesh(propGeom, propMat);
+                prop.position.set(x, 0.5, z);
+                prop.userData.speed = Math.random() * 0.5 + 0.5;
+                playerDrone.add(prop);
             });
             
-            // 포인트 라이트 (드론 조명)
-            const droneLight = new THREE.PointLight(0x4ade80, 2, 15);
-            droneLight.position.set(0, 0, 0);
-            playerDrone.add(droneLight);
+            const light = new THREE.PointLight(0x4ade80, 2, 15);
+            playerDrone.add(light);
             
-            playerDrone.position.set(playerData.position.x, playerData.position.y, playerData.position.z);
+            playerDrone.position.set(0, 15, 60);
             scene.add(playerDrone);
         }
         
-        function createAIDrone() {
-            const bodyGeometry = new THREE.BoxGeometry(2.5, 0.6, 2.5);
-            const bodyMaterial = new THREE.MeshStandardMaterial({
-                color: 0xef4444,
-                emissive: 0xdc2626,
-                emissiveIntensity: 0.4,
-                metalness: 0.8,
-                roughness: 0.2
-            });
-            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+        function createAIDrone(aiData) {
+            const bodyGeom = new THREE.BoxGeometry(2.5, 0.6, 2.5);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.4, metalness: 0.8, roughness: 0.2 });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
             body.castShadow = true;
             
-            const propellerGeometry = new THREE.CylinderGeometry(0.6, 0.6, 0.12, 12);
-            const propellerMaterial = new THREE.MeshStandardMaterial({
-                color: 0x1e293b,
-                metalness: 0.9,
-                roughness: 0.1,
-                emissive: 0xef4444,
-                emissiveIntensity: 0.2
-            });
-            
-            const propellerPositions = [
-                { x: 1.2, z: 1.2 },
-                { x: -1.2, z: 1.2 },
-                { x: 1.2, z: -1.2 },
-                { x: -1.2, z: -1.2 }
-            ];
-            
-            aiDrone = new THREE.Group();
+            const aiDrone = new THREE.Group();
             aiDrone.add(body);
             
-            propellerPositions.forEach(pos => {
-                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
-                propeller.position.set(pos.x, 0.5, pos.z);
-                propeller.userData.rotationSpeed = Math.random() * 0.6 + 0.6;
-                aiDrone.add(propeller);
-                
-                const lightGeom = new THREE.SphereGeometry(0.3, 8, 8);
-                const lightMat = new THREE.MeshBasicMaterial({
-                    color: 0xef4444,
-                    transparent: true,
-                    opacity: 0.5
-                });
-                const lightSphere = new THREE.Mesh(lightGeom, lightMat);
-                lightSphere.position.set(pos.x, 0.5, pos.z);
-                aiDrone.add(lightSphere);
+            const propGeom = new THREE.CylinderGeometry(0.6, 0.6, 0.12, 12);
+            const propMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9 });
+            
+            [[1.2,1.2], [-1.2,1.2], [1.2,-1.2], [-1.2,-1.2]].forEach(([x,z]) => {
+                const prop = new THREE.Mesh(propGeom, propMat);
+                prop.position.set(x, 0.5, z);
+                prop.userData.speed = 0.5;
+                aiDrone.add(prop);
             });
             
-            const droneLight = new THREE.PointLight(0xef4444, 2, 15);
-            droneLight.position.set(0, 0, 0);
-            aiDrone.add(droneLight);
+            const light = new THREE.PointLight(0xef4444, 2, 15);
+            aiDrone.add(light);
             
-            aiDrone.position.set(aiData.position.x, aiData.position.y, aiData.position.z);
+            aiDrone.position.set(...aiData.position);
             scene.add(aiDrone);
+            
+            return aiDrone;
         }
         
-        // ========== 장애물 생성 (확장된 맵) ==========
         function createObstacles(obstaclesData) {
-            obstacles.forEach(obs => scene.remove(obs));
-            obstacles = [];
-            
             obstaclesData.forEach(obsData => {
                 let obstacle;
-                const type = obsData.type;
-                const position = obsData.position;
-                const size = obsData.size;
-                const color = obsData.color || 0xb45309;
+                const {type, position, size, color = 0xb45309, rotation} = obsData;
                 
                 if (type === 'gear') {
-                    // 톱니바퀴
-                    const geometry = new THREE.CylinderGeometry(size[0], size[0], size[1], 20);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.95,
-                        roughness: 0.2,
-                        emissive: color,
-                        emissiveIntensity: 0.1
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    
-                    // 톱니 추가
-                    for (let i = 0; i < 12; i++) {
-                        const angle = (i / 12) * Math.PI * 2;
-                        const toothGeom = new THREE.BoxGeometry(0.4, size[1] * 1.1, 1);
-                        const tooth = new THREE.Mesh(toothGeom, material);
-                        const radius = size[0] + 0.4;
-                        tooth.position.set(
-                            Math.cos(angle) * radius,
-                            0,
-                            Math.sin(angle) * radius
-                        );
-                        tooth.rotation.y = angle;
-                        obstacle.add(tooth);
-                    }
-                    
+                    const geom = new THREE.CylinderGeometry(size[0], size[0], size[1], 20);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.95, roughness: 0.2 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 } else if (type === 'pipe') {
-                    // 파이프
-                    const geometry = new THREE.CylinderGeometry(size[0], size[0], size[1], 12);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.85,
-                        roughness: 0.3
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    
-                    if (obsData.rotation === 90) {
-                        obstacle.rotation.z = Math.PI / 2;
-                    } else if (obsData.rotation === 45) {
-                        obstacle.rotation.z = Math.PI / 4;
-                    }
-                    
+                    const geom = new THREE.CylinderGeometry(size[0], size[0], size[1], 12);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.85, roughness: 0.3 });
+                    obstacle = new THREE.Mesh(geom, mat);
+                    if (rotation === 90) obstacle.rotation.z = Math.PI / 2;
                 } else if (type === 'tower') {
-                    // 중앙 타워
-                    const geometry = new THREE.CylinderGeometry(size[0] * 0.8, size[0], size[1], 8);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.7,
-                        roughness: 0.4
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    
+                    const geom = new THREE.CylinderGeometry(size[0]*0.8, size[0], size[1], 8);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.7 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 } else if (type === 'cube') {
-                    // 큐브
-                    const geometry = new THREE.BoxGeometry(...size);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.6,
-                        roughness: 0.5
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    obstacle.rotation.y = Math.random() * Math.PI;
-                    
+                    const geom = new THREE.BoxGeometry(...size);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.6 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 } else if (type === 'ring') {
-                    // 링
-                    const geometry = new THREE.TorusGeometry(size[0], size[2], 16, 32);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.9,
-                        roughness: 0.1,
-                        emissive: color,
-                        emissiveIntensity: 0.3
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
+                    const geom = new THREE.TorusGeometry(size[0], size[2], 16, 32);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.9, emissive: color, emissiveIntensity: 0.3 });
+                    obstacle = new THREE.Mesh(geom, mat);
                     obstacle.rotation.x = Math.PI / 2;
-                    
                 } else if (type === 'crystal') {
-                    // 크리스탈
-                    const geometry = new THREE.ConeGeometry(size[0], size[1], 6);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.3,
-                        roughness: 0.1,
-                        emissive: color,
-                        emissiveIntensity: 0.6,
-                        transparent: true,
-                        opacity: 0.8
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    
+                    const geom = new THREE.ConeGeometry(size[0], size[1], 6);
+                    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.6, transparent: true, opacity: 0.8 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 } else if (type === 'platform') {
-                    // 플랫폼
-                    const geometry = new THREE.BoxGeometry(...size);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        metalness: 0.8,
-                        roughness: 0.6
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
-                    
+                    const geom = new THREE.BoxGeometry(...size);
+                    const mat = new THREE.MeshStandardMaterial({ color, metalness: 0.8 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 } else if (type === 'spike') {
-                    // 스파이크
-                    const geometry = new THREE.ConeGeometry(size[0], size[1], 4);
-                    const material = new THREE.MeshStandardMaterial({
-                        color: color,
-                        emissive: color,
-                        emissiveIntensity: 0.4
-                    });
-                    obstacle = new THREE.Mesh(geometry, material);
+                    const geom = new THREE.ConeGeometry(size[0], size[1], 4);
+                    const mat = new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.4 });
+                    obstacle = new THREE.Mesh(geom, mat);
                 }
                 
                 if (obstacle) {
                     obstacle.position.set(...position);
                     obstacle.castShadow = true;
-                    obstacle.receiveShadow = true;
-                    obstacle.userData.rotationSpeed = obsData.rotation_speed || Math.random() * 0.01 + 0.005;
-                    obstacle.userData.originalData = obsData;
-                    
+                    obstacle.userData.rotSpeed = Math.random() * 0.01;
                     scene.add(obstacle);
                     obstacles.push(obstacle);
                 }
             });
-            
-            console.log(`✅ ${obstacles.length}개의 장애물 생성 완료!`);
+            console.log(`✅ ${obstacles.length}개 장애물`);
         }
         
-        // ========== 파티클 시스템 ==========
-        function initParticleSystem() {
-            particles = [];
-        }
-        
-        function createTrailParticle(position, color) {
-            const geometry = new THREE.SphereGeometry(0.15, 8, 8);
-            const material = new THREE.MeshBasicMaterial({
-                color: color,
-                transparent: true,
-                opacity: 0.8
-            });
-            
-            const particle = new THREE.Mesh(geometry, material);
-            particle.position.set(...position);
-            particle.userData.life = 30;
-            particle.userData.maxLife = 30;
-            
-            scene.add(particle);
-            particles.push(particle);
-        }
-        
-        function updateParticles() {
-            particles.forEach((particle, index) => {
-                particle.userData.life--;
-                const progress = 1 - (particle.userData.life / particle.userData.maxLife);
-                
-                particle.scale.set(1 - progress * 0.5, 1 - progress * 0.5, 1 - progress * 0.5);
-                particle.material.opacity = 1 - progress;
-                
-                if (particle.userData.life <= 0) {
-                    scene.remove(particle);
-                    particles.splice(index, 1);
-                }
-            });
-        }
-        
-        // ========== 미사일 생성 (개선) ==========
         function createMissile(missileData) {
-            const geometry = new THREE.SphereGeometry(0.4, 12, 12);
-            const isPlayerMissile = !missileData.owner_id.includes('ai');
-            
-            const material = new THREE.MeshStandardMaterial({
-                color: isPlayerMissile ? 0x4ade80 : 0xef4444,
-                emissive: isPlayerMissile ? 0x22c55e : 0xff0000,
+            const isPlayer = !missileData.owner_id.includes('ai');
+            const geom = new THREE.SphereGeometry(0.4, 12, 12);
+            const mat = new THREE.MeshStandardMaterial({
+                color: isPlayer ? 0x4ade80 : 0xef4444,
+                emissive: isPlayer ? 0x22c55e : 0xff0000,
                 emissiveIntensity: 0.7,
-                metalness: 0.9,
-                roughness: 0.1
+                metalness: 0.9
             });
             
-            const missile = new THREE.Mesh(geometry, material);
+            const missile = new THREE.Mesh(geom, mat);
             missile.position.set(...missileData.position);
             
-            // 미사일 라이트
-            const missileLight = new THREE.PointLight(
-                isPlayerMissile ? 0x4ade80 : 0xef4444,
-                3,
-                10
-            );
-            missileLight.position.set(0, 0, 0);
-            missile.add(missileLight);
+            const light = new THREE.PointLight(isPlayer ? 0x4ade80 : 0xef4444, 3, 10);
+            missile.add(light);
             
-            // 꼬리 효과 (개선)
-            const tailGeometry = new THREE.ConeGeometry(0.2, 1, 8);
-            const tailMaterial = new THREE.MeshBasicMaterial({
-                color: isPlayerMissile ? 0x66ff66 : 0xff6666,
-                transparent: true,
-                opacity: 0.7
-            });
-            const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+            const tailGeom = new THREE.ConeGeometry(0.2, 1, 8);
+            const tailMat = new THREE.MeshBasicMaterial({ color: isPlayer ? 0x66ff66 : 0xff6666, transparent: true, opacity: 0.7 });
+            const tail = new THREE.Mesh(tailGeom, tailMat);
             tail.rotation.x = Math.PI / 2;
             tail.position.z = -0.7;
             missile.add(tail);
             
             scene.add(missile);
-            missiles[missileData.missile_id] = {
-                mesh: missile,
-                data: missileData
-            };
+            missiles[missileData.missile_id] = { mesh: missile, data: missileData };
         }
         
-        // ========== 폭발 이펙트 (고도화) ==========
         function createExplosion(position) {
-            // 주 폭발
-            const geometry = new THREE.SphereGeometry(1.5, 16, 16);
-            const material = new THREE.MeshBasicMaterial({
-                color: 0xff6600,
-                transparent: true,
-                opacity: 1.0
-            });
-            
-            const explosion = new THREE.Mesh(geometry, material);
+            const geom = new THREE.SphereGeometry(1.5, 16, 16);
+            const mat = new THREE.MeshBasicMaterial({ color: 0xff6600, transparent: true, opacity: 1.0 });
+            const explosion = new THREE.Mesh(geom, mat);
             explosion.position.set(...position);
             explosion.userData.life = 40;
             explosion.userData.maxLife = 40;
-            
             scene.add(explosion);
             explosions.push(explosion);
             
-            // 파티클 파편 (추가)
-            for (let i = 0; i < 15; i++) {
-                const particleGeom = new THREE.SphereGeometry(0.2, 8, 8);
-                const particleMat = new THREE.MeshBasicMaterial({
-                    color: [0xff6600, 0xff3300, 0xffaa00][Math.floor(Math.random() * 3)],
-                    transparent: true,
-                    opacity: 1.0
-                });
-                
-                const particle = new THREE.Mesh(particleGeom, particleMat);
+            // 파티클
+            for (let i = 0; i < 10; i++) {
+                const pGeom = new THREE.SphereGeometry(0.2, 8, 8);
+                const pMat = new THREE.MeshBasicMaterial({ color: [0xff6600, 0xff3300, 0xffaa00][i % 3], transparent: true, opacity: 1 });
+                const particle = new THREE.Mesh(pGeom, pMat);
                 particle.position.set(...position);
-                
-                const direction = new THREE.Vector3(
-                    (Math.random() - 0.5) * 2,
-                    (Math.random() - 0.5) * 2,
-                    (Math.random() - 0.5) * 2
-                ).normalize();
-                
-                particle.userData.velocity = direction.multiplyScalar(Math.random() * 0.5 + 0.3);
-                particle.userData.life = Math.random() * 20 + 20;
-                particle.userData.maxLife = particle.userData.life;
-                
+                const dir = new THREE.Vector3((Math.random()-0.5)*2, (Math.random()-0.5)*2, (Math.random()-0.5)*2).normalize();
+                particle.userData.velocity = dir.multiplyScalar(Math.random() * 0.5 + 0.3);
+                particle.userData.life = 30;
+                particle.userData.maxLife = 30;
                 scene.add(particle);
                 explosions.push(particle);
             }
-            
-            // 폭발 라이트
-            const explosionLight = new THREE.PointLight(0xff6600, 10, 20);
-            explosionLight.position.set(...position);
-            scene.add(explosionLight);
-            
-            setTimeout(() => {
-                scene.remove(explosionLight);
-            }, 100);
         }
         
-        // ========== 미사일 업데이트 ==========
         function updateMissiles(missilesList) {
-            const activeMissileIds = new Set(missilesList.map(m => m.missile_id));
+            const activeIds = new Set(missilesList.map(m => m.missile_id));
             
-            for (const missileId in missiles) {
-                if (!activeMissileIds.has(missileId)) {
-                    scene.remove(missiles[missileId].mesh);
-                    delete missiles[missileId];
+            for (const id in missiles) {
+                if (!activeIds.has(id)) {
+                    scene.remove(missiles[id].mesh);
+                    delete missiles[id];
                 }
             }
             
-            missilesList.forEach(missileData => {
-                if (missiles[missileData.missile_id]) {
-                    const missile = missiles[missileData.missile_id];
-                    missile.mesh.position.set(...missileData.position);
-                    missile.mesh.rotation.z += 0.3;
-                    
-                    // 미사일 트레일
-                    if (frameCount % 3 === 0) {
-                        const color = missileData.owner_id.includes('ai') ? 0xff4444 : 0x44ff44;
-                        createTrailParticle(missileData.position, color);
-                    }
+            missilesList.forEach(mData => {
+                if (missiles[mData.missile_id]) {
+                    missiles[mData.missile_id].mesh.position.set(...mData.position);
+                    missiles[mData.missile_id].mesh.rotation.z += 0.3;
                 } else {
-                    createMissile(missileData);
+                    createMissile(mData);
                 }
             });
         }
         
-        // ========== 폭발 애니메이션 ==========
         function updateExplosions() {
-            explosions.forEach((explosion, index) => {
-                explosion.userData.life--;
-                const progress = 1 - (explosion.userData.life / explosion.userData.maxLife);
+            explosions.forEach((exp, idx) => {
+                exp.userData.life--;
+                const progress = 1 - (exp.userData.life / exp.userData.maxLife);
                 
-                // 파티클 이동
-                if (explosion.userData.velocity) {
-                    explosion.position.add(explosion.userData.velocity);
-                    explosion.userData.velocity.y -= 0.01;  // 중력
+                if (exp.userData.velocity) {
+                    exp.position.add(exp.userData.velocity);
+                    exp.userData.velocity.y -= 0.01;
                 }
                 
-                explosion.scale.set(1 + progress * 4, 1 + progress * 4, 1 + progress * 4);
-                explosion.material.opacity = 1 - progress;
+                exp.scale.set(1+progress*4, 1+progress*4, 1+progress*4);
+                exp.material.opacity = 1 - progress;
                 
-                if (explosion.userData.life <= 0) {
-                    scene.remove(explosion);
-                    explosions.splice(index, 1);
+                if (exp.userData.life <= 0) {
+                    scene.remove(exp);
+                    explosions.splice(idx, 1);
                 }
             });
         }
         
-        // ========== 키보드 입력 ==========
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
-            
-            if (e.code === 'KeyF' && isConnected) {
-                fireMissile();
-            }
+            if (e.code === 'KeyF' && isConnected) fireMissile();
         });
+        document.addEventListener('keyup', (e) => keys[e.code] = false);
         
-        document.addEventListener('keyup', (e) => {
-            keys[e.code] = false;
-        });
-        
-        // ========== 미사일 발사 ==========
         function fireMissile() {
-            const direction = [
-                aiDrone.position.x - playerDrone.position.x,
-                aiDrone.position.y - playerDrone.position.y,
-                aiDrone.position.z - playerDrone.position.z
-            ];
+            // 가장 가까운 AI 찾기
+            let closestAI = null;
+            let minDist = Infinity;
             
-            const length = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
-            if (length > 0) {
-                direction[0] /= length;
-                direction[1] /= length;
-                direction[2] /= length;
+            for (const aiId in aiDrones) {
+                const ai = aiDrones[aiId];
+                const dist = Math.sqrt(
+                    (ai.position.x - playerDrone.position.x)**2 +
+                    (ai.position.y - playerDrone.position.y)**2 +
+                    (ai.position.z - playerDrone.position.z)**2
+                );
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestAI = ai;
+                }
             }
             
-            websocket.send(JSON.stringify({
-                type: 'fire_missile',
-                direction: direction
-            }));
+            if (closestAI) {
+                const direction = [
+                    closestAI.position.x - playerDrone.position.x,
+                    closestAI.position.y - playerDrone.position.y,
+                    closestAI.position.z - playerDrone.position.z
+                ];
+                
+                const length = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
+                if (length > 0) {
+                    direction[0] /= length;
+                    direction[1] /= length;
+                    direction[2] /= length;
+                }
+                
+                websocket.send(JSON.stringify({ type: 'fire_missile', direction: direction }));
+            }
         }
         
-        // ========== 플레이어 업데이트 (개선) ==========
         function updatePlayer() {
             if (keys['KeyW']) playerData.velocity.z -= ACCELERATION;
             if (keys['KeyS']) playerData.velocity.z += ACCELERATION;
@@ -1193,11 +625,7 @@
             if (keys['Space']) playerData.velocity.y += ACCELERATION * 0.8;
             if (keys['ShiftLeft'] || keys['ShiftRight']) playerData.velocity.y -= ACCELERATION * 0.8;
             
-            const speed = Math.sqrt(
-                playerData.velocity.x ** 2 + 
-                playerData.velocity.y ** 2 + 
-                playerData.velocity.z ** 2
-            );
+            const speed = Math.sqrt(playerData.velocity.x**2 + playerData.velocity.y**2 + playerData.velocity.z**2);
             if (speed > MAX_SPEED) {
                 playerData.velocity.x = (playerData.velocity.x / speed) * MAX_SPEED;
                 playerData.velocity.y = (playerData.velocity.y / speed) * MAX_SPEED;
@@ -1208,7 +636,6 @@
             playerData.position.y += playerData.velocity.y;
             playerData.position.z += playerData.velocity.z;
             
-            // 확장된 맵 경계
             const boundary = MAP_SIZE / 2 - 5;
             playerData.position.x = Math.max(-boundary, Math.min(boundary, playerData.position.x));
             playerData.position.y = Math.max(3, Math.min(60, playerData.position.y));
@@ -1220,32 +647,25 @@
             
             if (playerDrone) {
                 playerDrone.position.set(playerData.position.x, playerData.position.y, playerData.position.z);
-                
                 playerDrone.children.forEach(child => {
-                    if (child.geometry && child.geometry.type === 'CylinderGeometry') {
-                        child.rotation.y += child.userData.rotationSpeed || 0.4;
+                    if (child.geometry?.type === 'CylinderGeometry') {
+                        child.rotation.y += child.userData.speed || 0.4;
                     }
                 });
-                
                 playerDrone.rotation.z = -playerData.velocity.x * 0.25;
                 playerDrone.rotation.x = playerData.velocity.z * 0.25;
-                
-                // 드론 트레일 (가끔)
-                if (speed > 0.5 && frameCount % 5 === 0) {
-                    createTrailParticle([playerData.position.x, playerData.position.y, playerData.position.z], 0x4ade80);
-                }
             }
             
-            // 카메라 (부드러운 추적)
-            const cameraOffset = { x: 0, y: 20, z: 35 };
-            const targetCameraX = playerData.position.x + cameraOffset.x;
-            const targetCameraY = playerData.position.y + cameraOffset.y;
-            const targetCameraZ = playerData.position.z + cameraOffset.z;
+            // 카메라 (회전 적용)
+            const dist = 35;
+            const height = 20;
+            const offsetX = Math.sin(cameraRotationY) * dist;
+            const offsetZ = Math.cos(cameraRotationY) * dist;
+            const offsetY = height + Math.sin(cameraRotationX) * 15;
             
-            camera.position.x += (targetCameraX - camera.position.x) * 0.1;
-            camera.position.y += (targetCameraY - camera.position.y) * 0.1;
-            camera.position.z += (targetCameraZ - camera.position.z) * 0.1;
-            
+            camera.position.x = playerData.position.x + offsetX;
+            camera.position.y = playerData.position.y + offsetY;
+            camera.position.z = playerData.position.z + offsetZ;
             camera.lookAt(playerData.position.x, playerData.position.y, playerData.position.z);
             
             if (isConnected && websocket.readyState === WebSocket.OPEN) {
@@ -1257,315 +677,201 @@
             }
         }
         
-        // ========== UI 업데이트 ==========
         function updateUI() {
             const playerHpPercent = (playerData.hp / playerData.max_hp) * 100;
             document.getElementById('player-hp-fill').style.width = playerHpPercent + '%';
             document.getElementById('player-hp-text').textContent = `${playerData.hp} / ${playerData.max_hp}`;
             
-            const playerHpFill = document.getElementById('player-hp-fill');
-            if (playerHpPercent > 60) {
-                playerHpFill.style.background = 'linear-gradient(90deg, #4ade80, #22c55e)';
-            } else if (playerHpPercent > 30) {
-                playerHpFill.style.background = 'linear-gradient(90deg, #fbbf24, #f59e0b)';
-            } else {
-                playerHpFill.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
-            }
-            
-            const aiHpPercent = (aiData.hp / aiData.max_hp) * 100;
-            document.getElementById('ai-hp-fill').style.width = aiHpPercent + '%';
-            document.getElementById('ai-hp-text').textContent = `AI [${aiData.behavior_mode}]: ${aiData.hp} / ${aiData.max_hp}`;
-            
             document.getElementById('player-level').textContent = playerData.level;
             document.getElementById('player-coins').textContent = playerData.coins + ' 💰';
+            document.getElementById('player-tier').textContent = playerData.tier;
+            document.getElementById('player-tier').style.backgroundColor = getTierColor(playerData.tier);
             
-            const tierBadge = document.getElementById('player-tier');
-            tierBadge.textContent = playerData.tier;
-            tierBadge.style.backgroundColor = getTierColor(playerData.tier);
+            // AI HP 바들 업데이트
+            const container = document.getElementById('ai-hp-container');
+            container.innerHTML = '';
+            
+            for (const aiId in aiDataMap) {
+                const aiData = aiDataMap[aiId];
+                const hpPercent = (aiData.hp / aiData.max_hp) * 100;
+                
+                const barDiv = document.createElement('div');
+                barDiv.className = 'ai-hp-bar';
+                barDiv.innerHTML = `
+                    <div class="ai-hp-fill" style="width: ${hpPercent}%;">
+                        AI-${aiId.split('_')[2] || 0}: ${aiData.hp}/${aiData.max_hp}
+                    </div>
+                `;
+                container.appendChild(barDiv);
+            }
         }
         
         function getTierColor(tier) {
-            const colors = {
-                'Bronze': '#cd7f32',
-                'Silver': '#c0c0c0',
-                'Gold': '#ffd700',
-                'Platinum': '#e5e4e2',
-                'Diamond': '#b9f2ff',
-                'Master': '#9d4edd',
-                'Legend': '#ff006e'
-            };
+            const colors = { 'Bronze': '#cd7f32', 'Silver': '#c0c0c0', 'Gold': '#ffd700', 'Platinum': '#e5e4e2', 'Diamond': '#b9f2ff', 'Master': '#9d4edd', 'Legend': '#ff006e' };
             return colors[tier] || '#cd7f32';
         }
         
-        // ========== 알림 표시 ==========
-        function showNotification(message, duration = 2000) {
-            const notification = document.getElementById('notification');
-            notification.textContent = message;
-            notification.style.display = 'block';
-            
-            setTimeout(() => {
-                notification.style.display = 'none';
-            }, duration);
+        function showNotification(msg, dur = 2000) {
+            const notif = document.getElementById('notification');
+            notif.textContent = msg;
+            notif.style.display = 'block';
+            setTimeout(() => notif.style.display = 'none', dur);
         }
         
-        // ========== 장애물 애니메이션 ==========
-        function animateObstacles() {
-            obstacles.forEach(obstacle => {
-                obstacle.rotation.y += obstacle.userData.rotationSpeed || 0.01;
-            });
-        }
-        
-        // ========== 윈도우 리사이즈 ==========
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        }
-        
-        // ========== 난이도 선택 ==========
-        document.querySelectorAll('.difficulty-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const difficulty = btn.getAttribute('data-difficulty');
-                currentDifficulty = difficulty;
-                
-                // 버튼 상태 업데이트
-                document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-                
-                // 서버에 난이도 변경 요청
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(JSON.stringify({
-                        type: 'change_difficulty',
-                        difficulty: difficulty
-                    }));
-                    
-                    showNotification(`AI 난이도: ${difficulty.toUpperCase()}`, 1500);
-                }
-            });
-        });
-        
-        // ========== 업그레이드 클릭 ==========
         document.querySelectorAll('.upgrade-item').forEach(item => {
             item.addEventListener('click', () => {
-                const upgradeType = item.getAttribute('data-type');
-                
-                if (websocket && websocket.readyState === WebSocket.OPEN) {
-                    websocket.send(JSON.stringify({
-                        type: 'upgrade',
-                        upgrade_type: upgradeType
-                    }));
+                const type = item.getAttribute('data-type');
+                if (websocket?.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({ type: 'upgrade', upgrade_type: type }));
                 }
             });
         });
         
-        // ========== 메인 애니메이션 루프 ==========
         function animate() {
             requestAnimationFrame(animate);
-            
             updatePlayer();
-            animateObstacles();
+            obstacles.forEach(obs => obs.rotation.y += obs.userData.rotSpeed || 0.01);
             updateExplosions();
-            updateParticles();
             updateUI();
-            
             frameCount++;
-            
             renderer.render(scene, camera);
         }
         
-        // ========== WebSocket 연결 ==========
         function connectWebSocket() {
-            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
-            
-            console.log('🔌 WebSocket 연결 시도:', wsUrl);
-            
+            const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws`;
             websocket = new WebSocket(wsUrl);
             
             websocket.onopen = () => {
-                console.log('✅ WebSocket 연결 성공!');
                 isConnected = true;
-                document.getElementById('status').style.borderColor = 'rgba(74, 222, 128, 0.7)';
                 document.querySelector('.status-dot').className = 'status-dot green';
-                document.getElementById('status-text').textContent = '서버 연결됨';
+                document.getElementById('status-text').textContent = '연결됨';
+                console.log('✅ 연결!');
             };
             
             websocket.onmessage = (event) => {
-                const message = JSON.parse(event.data);
+                const msg = JSON.parse(event.data);
                 
-                if (message.type === 'init') {
-                    clientId = message.client_id;
-                    aiDroneId = message.ai_drone_id;
+                if (msg.type === 'init') {
+                    clientId = msg.client_id;
+                    aiIds = msg.ai_ids || [];
                     
-                    const pData = message.player_data;
+                    const pData = msg.player_data;
                     playerData.hp = pData.hp;
                     playerData.max_hp = pData.max_hp;
                     playerData.level = pData.level;
                     playerData.exp = pData.experience;
                     playerData.coins = pData.coins;
                     playerData.tier = pData.tier.display;
-                    playerData.position.x = pData.position[0];
-                    playerData.position.y = pData.position[1];
-                    playerData.position.z = pData.position[2];
+                    playerData.position = { x: pData.position[0], y: pData.position[1], z: pData.position[2] };
                     
-                    if (playerDrone) {
-                        playerDrone.position.set(...pData.position);
-                    }
+                    if (playerDrone) playerDrone.position.set(...pData.position);
                     
-                    const aData = message.ai_data;
-                    aiData.hp = aData.hp;
-                    aiData.max_hp = aData.max_hp;
-                    aiData.position = {
-                        x: aData.position[0],
-                        y: aData.position[1],
-                        z: aData.position[2]
-                    };
-                    aiData.behavior_mode = aData.behavior_mode || 'aggressive';
-                    
-                    if (aiDrone) {
-                        aiDrone.position.set(...aData.position);
-                    }
-                    
-                    createObstacles(message.obstacles);
-                    
-                    document.getElementById('loading').style.display = 'none';
-                    
-                    showNotification(message.message);
-                    
-                } else if (message.type === 'ai_update') {
-                    const aiState = message.ai_state;
-                    if (aiDrone && aiState.position) {
-                        aiDrone.position.set(...aiState.position);
-                        
-                        aiData.hp = aiState.hp;
-                        aiData.max_hp = aiState.max_hp;
-                        aiData.behavior_mode = aiState.behavior_mode || 'aggressive';
-                        aiData.position = {
-                            x: aiState.position[0],
-                            y: aiState.position[1],
-                            z: aiState.position[2]
+                    // AI 드론들 생성
+                    msg.ai_drones.forEach(aiData => {
+                        const aiDrone = createAIDrone(aiData);
+                        aiDrones[aiData.drone_id] = aiDrone;
+                        aiDataMap[aiData.drone_id] = {
+                            position: { x: aiData.position[0], y: aiData.position[1], z: aiData.position[2] },
+                            hp: aiData.hp,
+                            max_hp: aiData.max_hp
                         };
-                        
-                        aiDrone.children.forEach(child => {
-                            if (child.geometry && child.geometry.type === 'CylinderGeometry') {
-                                child.rotation.y += child.userData.rotationSpeed || 0.4;
+                    });
+                    
+                    createObstacles(msg.obstacles);
+                    document.getElementById('loading').style.display = 'none';
+                    showNotification(msg.message);
+                    
+                } else if (msg.type === 'ai_updates') {
+                    msg.ai_states.forEach(aiState => {
+                        const aiId = aiState.drone_id;
+                        if (aiDrones[aiId]) {
+                            aiDrones[aiId].position.set(...aiState.position);
+                            aiDrones[aiId].children.forEach(child => {
+                                if (child.geometry?.type === 'CylinderGeometry') {
+                                    child.rotation.y += child.userData.speed || 0.4;
+                                }
+                            });
+                            
+                            if (aiState.velocity) {
+                                aiDrones[aiId].rotation.z = -aiState.velocity[0] * 0.5;
+                                aiDrones[aiId].rotation.x = aiState.velocity[2] * 0.5;
                             }
-                        });
-                        
-                        if (aiState.velocity) {
-                            aiDrone.rotation.z = -aiState.velocity[0] * 0.5;
-                            aiDrone.rotation.x = aiState.velocity[2] * 0.5;
                         }
-                    }
-                    
-                } else if (message.type === 'game_state') {
-                    if (message.missiles) {
-                        updateMissiles(message.missiles);
-                    }
-                    
-                } else if (message.type === 'missile_fired') {
-                    if (message.success && message.missile) {
-                        createMissile(message.missile);
-                    }
-                    
-                } else if (message.type === 'ai_missile_fired') {
-                    if (message.missile) {
-                        createMissile(message.missile);
-                    }
-                    
-                } else if (message.type === 'damage_taken') {
-                    playerData.hp = message.hp;
-                    playerData.max_hp = message.max_hp;
-                    
-                    if (message.explosion_position) {
-                        createExplosion(message.explosion_position);
-                    }
-                    
-                    showNotification(`💥 -${message.damage} 데미지!`, 1000);
-                    
-                } else if (message.type === 'obstacle_collision') {
-                    playerData.hp = message.hp;
-                    
-                    if (message.explosion_position) {
-                        createExplosion(message.explosion_position);
-                    }
-                    
-                    showNotification(`⚠️ 충돌! -${message.damage} 데미지!`, 1500);
-                    
-                    // 반발 속도 적용
-                    if (message.bounce_velocity) {
-                        playerData.velocity.x = message.bounce_velocity[0];
-                        playerData.velocity.y = message.bounce_velocity[1];
-                        playerData.velocity.z = message.bounce_velocity[2];
-                    }
-                    
-                } else if (message.type === 'hit_confirmed') {
-                    aiData.hp = message.target_hp;
-                    aiData.max_hp = message.target_max_hp || 100;
-                    
-                    if (message.explosion_position) {
-                        createExplosion(message.explosion_position);
-                    }
-                    
-                    showNotification(`🎯 명중! -${message.damage}`, 1000);
-                    
-                } else if (message.type === 'kill_confirmed') {
-                    const rewards = message.rewards;
-                    playerData.coins = message.player_data.coins;
-                    playerData.level = message.player_data.level;
-                    playerData.exp = message.player_data.experience;
-                    
-                    document.getElementById('kill-count').textContent = rewards.session_kills;
-                    document.getElementById('score-value').textContent = message.player_data.session.score;
-                    
-                    showNotification(`🔥 킬! +${rewards.score_reward} 점수`, 2500);
-                    
-                } else if (message.type === 'player_died') {
-                    showNotification('💀 사망! 리스폰 중...', 3000);
-                    
-                } else if (message.type === 'respawned') {
-                    const pData = message.player_data;
-                    playerData.hp = pData.hp;
-                    playerData.max_hp = pData.max_hp;
-                    playerData.position = {
-                        x: pData.position[0],
-                        y: pData.position[1],
-                        z: pData.position[2]
-                    };
-                    
-                    if (playerDrone) {
-                        playerDrone.position.set(...pData.position);
-                    }
-                    
-                    showNotification(message.message, 2000);
-                    
-                } else if (message.type === 'ai_respawned') {
-                    const aData = message.ai_data;
-                    aiData.hp = aData.hp;
-                    aiData.max_hp = aData.max_hp;
-                    aiData.position = {
-                        x: aData.position[0],
-                        y: aData.position[1],
-                        z: aData.position[2]
-                    };
-                    
-                    if (aiDrone) {
-                        aiDrone.position.set(...aData.position);
-                    }
-                    
-                } else if (message.type === 'difficulty_changed') {
-                    const aData = message.ai_data;
-                    aiData.max_hp = aData.max_hp;
-                    aiData.hp = aData.hp;
-                    
-                    showNotification(`🤖 AI 난이도: ${message.difficulty.toUpperCase()}`, 2000);
-                    
-                } else if (message.type === 'upgrade_result') {
-                    if (message.success) {
-                        const pData = message.player_data;
-                        playerData.coins = pData.coins;
                         
-                        showNotification(`✨ 업그레이드 완료!`, 1500);
+                        aiDataMap[aiId] = {
+                            position: { x: aiState.position[0], y: aiState.position[1], z: aiState.position[2] },
+                            hp: aiState.hp,
+                            max_hp: aiState.max_hp
+                        };
+                    });
+                    
+                } else if (msg.type === 'game_state') {
+                    if (msg.missiles) updateMissiles(msg.missiles);
+                    
+                } else if (msg.type === 'missile_fired') {
+                    if (msg.success && msg.missile) createMissile(msg.missile);
+                    
+                } else if (msg.type === 'damage_taken') {
+                    playerData.hp = msg.hp;
+                    if (msg.explosion_position) createExplosion(msg.explosion_position);
+                    showNotification(`💥 -${msg.damage} 데미지!`, 1000);
+                    
+                } else if (msg.type === 'obstacle_collision') {
+                    playerData.hp = msg.hp;
+                    if (msg.explosion_position) createExplosion(msg.explosion_position);
+                    showNotification(`⚠️ 충돌! -${msg.damage}`, 1500);
+                    if (msg.bounce_velocity) {
+                        playerData.velocity = { x: msg.bounce_velocity[0], y: msg.bounce_velocity[1], z: msg.bounce_velocity[2] };
+                    }
+                    
+                } else if (msg.type === 'hit_confirmed') {
+                    if (aiDataMap[msg.target_id]) {
+                        aiDataMap[msg.target_id].hp = msg.target_hp;
+                        aiDataMap[msg.target_id].max_hp = msg.target_max_hp;
+                    }
+                    if (msg.explosion_position) createExplosion(msg.explosion_position);
+                    showNotification(`🎯 명중! -${msg.damage}`, 1000);
+                    
+                } else if (msg.type === 'kill_confirmed') {
+                    const rewards = msg.rewards;
+                    playerData.coins = msg.player_data.coins;
+                    playerData.level = msg.player_data.level;
+                    playerData.exp = msg.player_data.experience;
+                    document.getElementById('kill-count').textContent = rewards.session_kills;
+                    document.getElementById('score-value').textContent = msg.player_data.session.score;
+                    showNotification(`🔥 킬! +${rewards.score_reward}`, 2500);
+                    
+                } else if (msg.type === 'player_died') {
+                    showNotification('💀 사망! 3초 후 리스폰...', 3000);
+                    
+                } else if (msg.type === 'respawned') {
+                    const pData = msg.player_data;
+                    playerData.hp = pData.hp;
+                    playerData.position = { x: pData.position[0], y: pData.position[1], z: pData.position[2] };
+                    if (playerDrone) playerDrone.position.set(...pData.position);
+                    showNotification('✅ 리스폰!', 2000);
+                    
+                } else if (msg.type === 'ai_respawned') {
+                    const aiData = msg.ai_data;
+                    const aiId = msg.ai_id;
+                    
+                    if (aiDrones[aiId]) {
+                        aiDrones[aiId].position.set(...aiData.position);
+                    } else {
+                        aiDrones[aiId] = createAIDrone(aiData);
+                    }
+                    
+                    aiDataMap[aiId] = {
+                        position: { x: aiData.position[0], y: aiData.position[1], z: aiData.position[2] },
+                        hp: aiData.hp,
+                        max_hp: aiData.max_hp
+                    };
+                    
+                } else if (msg.type === 'upgrade_result') {
+                    if (msg.success) {
+                        const pData = msg.player_data;
+                        playerData.coins = pData.coins;
+                        showNotification('✨ 업그레이드 완료!', 1500);
                         
                         Object.keys(pData.upgrades).forEach(key => {
                             const upgrade = pData.upgrades[key];
@@ -1573,48 +879,29 @@
                             if (item) {
                                 item.querySelector('.upgrade-level').textContent = upgrade.level;
                                 item.querySelector('.upgrade-cost').textContent = upgrade.cost + ' 💰';
-                                
-                                if (!upgrade.can_upgrade) {
-                                    item.classList.add('disabled');
-                                } else {
-                                    item.classList.remove('disabled');
-                                }
                             }
                         });
                     } else {
-                        const reasons = {
-                            'max_level': '최대 레벨입니다!',
-                            'insufficient_coins': '코인이 부족합니다!'
-                        };
-                        showNotification(`❌ ${reasons[message.reason] || '실패'}`, 2000);
+                        showNotification('❌ 업그레이드 실패', 2000);
                     }
                 }
             };
             
-            websocket.onerror = (error) => {
-                console.error('❌ WebSocket 오류:', error);
-            };
-            
+            websocket.onerror = (err) => console.error('❌ 오류:', err);
             websocket.onclose = () => {
-                console.log('🔌 WebSocket 연결 종료');
                 isConnected = false;
-                document.getElementById('status').style.borderColor = 'rgba(239, 68, 68, 0.7)';
                 document.querySelector('.status-dot').className = 'status-dot red';
-                document.getElementById('status-text').textContent = '서버 연결 끊김';
-                
+                document.getElementById('status-text').textContent = '연결 끊김';
                 setTimeout(connectWebSocket, 3000);
             };
         }
         
-        // ========== 게임 시작 ==========
-        function startGame() {
-            console.log('🎮 게임 시작! (고도화 버전)');
+        window.addEventListener('load', () => {
+            console.log('🎮 게임 시작!');
             initThreeJS();
             connectWebSocket();
             animate();
-        }
-        
-        window.addEventListener('load', startGame);
+        });
     </script>
 </body>
 </html>
