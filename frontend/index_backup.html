@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚁 3D 드론 AI 대전 시뮬레이터</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+        
+        /* HP 바 스타일 */
+        .hp-bar-container {
+            position: absolute;
+            width: 300px;
+            height: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            padding: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .hp-bar-fill {
+            height: 100%;
+            border-radius: 15px;
+            transition: width 0.3s ease, background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+        }
+        
+        #player-hp-bar {
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        #ai-hp-bar {
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        
+        /* 정보 패널 */
+        #info-panel {
+            position: absolute;
+            top: 80px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            z-index: 100;
+            min-width: 280px;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #info-panel h2 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #4ade80;
+            border-bottom: 2px solid #4ade80;
+            padding-bottom: 5px;
+        }
+        
+        .stat {
+            margin: 8px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .stat .label {
+            color: #94a3b8;
+        }
+        
+        .stat .value {
+            color: #4ade80;
+            font-weight: bold;
+        }
+        
+        /* 티어 표시 */
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        
+        /* 레벨 & 경험치 바 */
+        .exp-bar-container {
+            width: 100%;
+            height: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            margin-top: 8px;
+            overflow: hidden;
+        }
+        
+        .exp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e);
+            transition: width 0.3s ease;
+        }
+        
+        /* 점수 및 킬 패널 */
+        #score-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 215, 0, 0.5);
+            min-width: 200px;
+        }
+        
+        #score-panel h2 {
+            color: #ffd700;
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+        
+        .score-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #ffd700;
+            text-align: center;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* 업그레이드 패널 */
+        #upgrade-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(147, 51, 234, 0.5);
+            max-width: 300px;
+        }
+        
+        #upgrade-panel h3 {
+            color: #a78bfa;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        
+        .upgrade-item {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .upgrade-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .upgrade-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .upgrade-cost {
+            color: #ffd700;
+            font-weight: bold;
+        }
+        
+        /* 조작법 */
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        #controls h3 {
+            margin-bottom: 10px;
+            color: #60a5fa;
+        }
+        
+        .key {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin: 2px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        /* 쿨다운 표시 */
+        #cooldown-indicator {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, 150px);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.8);
+            border: 3px solid white;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+        }
+        
+        #cooldown-indicator.ready {
+            background: rgba(74, 222, 128, 0.8);
+        }
+        
+        /* 알림 메시지 */
+        #notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            text-align: center;
+            border: 3px solid #4ade80;
+        }
+        
+        /* 로딩 */
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 24px;
+            z-index: 200;
+        }
+        
+        /* 연결 상태 */
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-300px);
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        .status-dot.green {
+            background: #4ade80;
+            box-shadow: 0 0 10px rgba(74, 222, 128, 0.8);
+        }
+        
+        .status-dot.red {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.8);
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(0.8); }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading">🚁 게임 로딩 중...</div>
+        
+        <!-- 플레이어 HP 바 -->
+        <div id="player-hp-bar" class="hp-bar-container">
+            <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%; background: linear-gradient(90deg, #4ade80, #22c55e);">
+                <span id="player-hp-text">100 / 100</span>
+            </div>
+        </div>
+        
+        <!-- AI HP 바 -->
+        <div id="ai-hp-bar" class="hp-bar-container">
+            <div class="hp-bar-fill" id="ai-hp-fill" style="width: 100%; background: linear-gradient(90deg, #ef4444, #dc2626);">
+                <span id="ai-hp-text">100 / 100</span>
+            </div>
+        </div>
+        
+        <!-- 정보 패널 -->
+        <div id="info-panel">
+            <h2>👤 플레이어 정보</h2>
+            <div class="stat">
+                <span class="label">레벨:</span>
+                <span class="value" id="player-level">1</span>
+            </div>
+            <div class="stat">
+                <span class="label">티어:</span>
+                <span class="tier-badge" id="player-tier">Bronze</span>
+            </div>
+            <div class="stat">
+                <span class="label">코인:</span>
+                <span class="value" id="player-coins">0 💰</span>
+            </div>
+            <div class="exp-bar-container">
+                <div class="exp-bar-fill" id="exp-bar" style="width: 0%;"></div>
+            </div>
+            <div class="stat" style="font-size: 11px; margin-top: 5px;">
+                <span id="exp-text">0 / 100 EXP</span>
+            </div>
+        </div>
+        
+        <!-- 점수 패널 -->
+        <div id="score-panel">
+            <h2>🏆 전투 기록</h2>
+            <div class="stat">
+                <span class="label">킬:</span>
+                <span class="value" id="kill-count">0</span>
+            </div>
+            <div class="stat">
+                <span class="label">점수:</span>
+                <span class="score-value" id="score-value">0</span>
+            </div>
+        </div>
+        
+        <!-- 업그레이드 패널 -->
+        <div id="upgrade-panel">
+            <h3>⚡ 업그레이드</h3>
+            <div class="upgrade-item" data-type="speed">
+                <span>🚀 속도 Lv.<span class="upgrade-level">0</span></span>
+                <span class="upgrade-cost">100 💰</span>
+            </div>
+            <div class="upgrade-item" data-type="armor">
+                <span>🛡️ 방어력 Lv.<span class="upgrade-level">0</span></span>
+                <span class="upgrade-cost">100 💰</span>
+            </div>
+            <div class="upgrade-item" data-type="damage">
+                <span>⚔️ 공격력 Lv.<span class="upgrade-level">0</span></span>
+                <span class="upgrade-cost">100 💰</span>
+            </div>
+            <div class="upgrade-item" data-type="fire_rate">
+                <span>⚡ 발사속도 Lv.<span class="upgrade-level">0</span></span>
+                <span class="upgrade-cost">100 💰</span>
+            </div>
+        </div>
+        
+        <!-- 조작법 -->
+        <div id="controls">
+            <h3>⌨️ 조작법</h3>
+            <div>
+                <span class="key">W</span> 전진 |
+                <span class="key">S</span> 후진 |
+                <span class="key">A</span> 좌측 |
+                <span class="key">D</span> 우측
+            </div>
+            <div style="margin-top: 8px;">
+                <span class="key">Space</span> 상승 |
+                <span class="key">Shift</span> 하강
+            </div>
+            <div style="margin-top: 8px;">
+                <span class="key">F</span> 미사일 발사 🚀
+            </div>
+        </div>
+        
+        <!-- 연결 상태 -->
+        <div id="status">
+            <span class="status-dot red"></span>
+            <span id="status-text">서버 연결 중...</span>
+        </div>
+        
+        <!-- 쿨다운 표시 -->
+        <div id="cooldown-indicator">F</div>
+        
+        <!-- 알림 -->
+        <div id="notification"></div>
+    </div>
+
+    <!-- Three.js CDN -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        // ========== 전역 변수 ==========
+        let scene, camera, renderer;
+        let playerDrone, aiDrone;
+        let obstacles = [];
+        let missiles = {};  // 미사일 객체들
+        let explosions = [];  // 폭발 이펙트
+        let websocket;
+        let isConnected = false;
+        let clientId, aiDroneId;
+        
+        // 플레이어 데이터
+        let playerData = {
+            position: { x: 0, y: 10, z: 30 },
+            velocity: { x: 0, y: 0, z: 0 },
+            hp: 100,
+            max_hp: 100,
+            level: 1,
+            exp: 0,
+            coins: 0,
+            tier: 'Bronze'
+        };
+        
+        // AI 데이터
+        let aiData = {
+            position: { x: -10, y: 10, z: -10 },
+            hp: 100,
+            max_hp: 100
+        };
+        
+        // 게임 설정
+        let keys = {};
+        const MOVE_SPEED = 0.3;
+        const MAX_SPEED = 1.0;
+        const ACCELERATION = 0.05;
+        const DRAG = 0.95;
+        
+        // FPS 측정
+        let lastTime = performance.now();
+        let frameCount = 0;
+        let fps = 60;
+
+        // ========== Three.js 초기화 ==========
+        function initThreeJS() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 50, 100);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(
+                75,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 20, 40);
+            camera.lookAt(0, 10, 0);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+            
+            // 조명
+            const ambientLight = new THREE.AmbientLight(0x404040, 1.5);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+            directionalLight.position.set(50, 50, 50);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            scene.add(directionalLight);
+            
+            const pointLight1 = new THREE.PointLight(0xff6b35, 2, 50);
+            pointLight1.position.set(15, 15, 10);
+            scene.add(pointLight1);
+            
+            const pointLight2 = new THREE.PointLight(0x4ecdc4, 2, 50);
+            pointLight2.position.set(-20, 15, -15);
+            scene.add(pointLight2);
+            
+            // 바닥
+            const groundGeometry = new THREE.PlaneGeometry(100, 100);
+            const groundMaterial = new THREE.MeshStandardMaterial({
+                color: 0x2d3561,
+                roughness: 0.8,
+                metalness: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = 0;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            const gridHelper = new THREE.GridHelper(100, 20, 0x4ecdc4, 0x2d3561);
+            scene.add(gridHelper);
+            
+            // 드론 생성
+            createPlayerDrone();
+            createAIDrone();
+            
+            // 윈도우 리사이즈
+            window.addEventListener('resize', onWindowResize);
+            
+            console.log('✅ Three.js 초기화 완료!');
+        }
+        
+        // ========== 플레이어 드론 생성 ==========
+        function createPlayerDrone() {
+            const bodyGeometry = new THREE.BoxGeometry(2, 0.5, 2);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0x4ade80,
+                emissive: 0x2dd4bf,
+                emissiveIntensity: 0.3,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            
+            const propellerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8);
+            const propellerMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            
+            const propellerPositions = [
+                { x: 1, z: 1 },
+                { x: -1, z: 1 },
+                { x: 1, z: -1 },
+                { x: -1, z: -1 }
+            ];
+            
+            playerDrone = new THREE.Group();
+            playerDrone.add(body);
+            
+            propellerPositions.forEach(pos => {
+                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+                propeller.position.set(pos.x, 0.4, pos.z);
+                propeller.userData.rotationSpeed = Math.random() * 0.5 + 0.5;
+                playerDrone.add(propeller);
+            });
+            
+            playerDrone.position.set(playerData.position.x, playerData.position.y, playerData.position.z);
+            scene.add(playerDrone);
+        }
+        
+        // ========== AI 드론 생성 ==========
+        function createAIDrone() {
+            const bodyGeometry = new THREE.BoxGeometry(2, 0.5, 2);
+            const bodyMaterial = new THREE.MeshStandardMaterial({
+                color: 0xef4444,
+                emissive: 0xdc2626,
+                emissiveIntensity: 0.3,
+                metalness: 0.7,
+                roughness: 0.3
+            });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            
+            const propellerGeometry = new THREE.CylinderGeometry(0.5, 0.5, 0.1, 8);
+            const propellerMaterial = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                metalness: 0.8,
+                roughness: 0.2
+            });
+            
+            const propellerPositions = [
+                { x: 1, z: 1 },
+                { x: -1, z: 1 },
+                { x: 1, z: -1 },
+                { x: -1, z: -1 }
+            ];
+            
+            aiDrone = new THREE.Group();
+            aiDrone.add(body);
+            
+            propellerPositions.forEach(pos => {
+                const propeller = new THREE.Mesh(propellerGeometry, propellerMaterial);
+                propeller.position.set(pos.x, 0.4, pos.z);
+                propeller.userData.rotationSpeed = Math.random() * 0.5 + 0.5;
+                aiDrone.add(propeller);
+            });
+            
+            aiDrone.position.set(aiData.position.x, aiData.position.y, aiData.position.z);
+            scene.add(aiDrone);
+        }
+        
+        // ========== 장애물 생성 ==========
+        function createObstacles(obstaclesData) {
+            obstacles.forEach(obs => scene.remove(obs));
+            obstacles = [];
+            
+            obstaclesData.forEach(obsData => {
+                let obstacle;
+                
+                if (obsData.type === 'gear') {
+                    const geometry = new THREE.CylinderGeometry(
+                        obsData.size[0], obsData.size[0], obsData.size[1], 16
+                    );
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0xb45309,
+                        metalness: 0.9,
+                        roughness: 0.3
+                    });
+                    obstacle = new THREE.Mesh(geometry, material);
+                    
+                    for (let i = 0; i < 8; i++) {
+                        const angle = (i / 8) * Math.PI * 2;
+                        const toothGeometry = new THREE.BoxGeometry(0.3, obsData.size[1], 0.8);
+                        const tooth = new THREE.Mesh(toothGeometry, material);
+                        const radius = obsData.size[0] + 0.3;
+                        tooth.position.set(
+                            Math.cos(angle) * radius,
+                            0,
+                            Math.sin(angle) * radius
+                        );
+                        tooth.rotation.y = angle;
+                        obstacle.add(tooth);
+                    }
+                    
+                } else if (obsData.type === 'pipe') {
+                    const geometry = new THREE.CylinderGeometry(
+                        obsData.size[0], obsData.size[0], obsData.size[1], 8
+                    );
+                    const material = new THREE.MeshStandardMaterial({
+                        color: 0x475569,
+                        metalness: 0.8,
+                        roughness: 0.4
+                    });
+                    obstacle = new THREE.Mesh(geometry, material);
+                    
+                    if (obsData.rotation === 90) {
+                        obstacle.rotation.z = Math.PI / 2;
+                    }
+                }
+                
+                obstacle.position.set(obsData.position[0], obsData.position[1], obsData.position[2]);
+                obstacle.castShadow = true;
+                obstacle.receiveShadow = true;
+                obstacle.userData.rotationSpeed = Math.random() * 0.01 + 0.005;
+                
+                scene.add(obstacle);
+                obstacles.push(obstacle);
+            });
+            
+            console.log(`✅ ${obstacles.length}개의 장애물 생성 완료!`);
+        }
+        
+        // ========== 미사일 생성 ==========
+        function createMissile(missileData) {
+            const geometry = new THREE.SphereGeometry(0.3, 8, 8);
+            const material = new THREE.MeshStandardMaterial({
+                color: missileData.owner_id.includes('ai') ? 0xef4444 : 0x4ade80,
+                emissive: missileData.owner_id.includes('ai') ? 0xff0000 : 0x00ff00,
+                emissiveIntensity: 0.5
+            });
+            
+            const missile = new THREE.Mesh(geometry, material);
+            missile.position.set(
+                missileData.position[0],
+                missileData.position[1],
+                missileData.position[2]
+            );
+            
+            // 꼬리 효과
+            const tailGeometry = new THREE.ConeGeometry(0.15, 0.8, 8);
+            const tailMaterial = new THREE.MeshBasicMaterial({
+                color: missileData.owner_id.includes('ai') ? 0xff6666 : 0x66ff66,
+                transparent: true,
+                opacity: 0.6
+            });
+            const tail = new THREE.Mesh(tailGeometry, tailMaterial);
+            tail.rotation.x = Math.PI / 2;
+            tail.position.z = -0.5;
+            missile.add(tail);
+            
+            scene.add(missile);
+            missiles[missileData.missile_id] = {
+                mesh: missile,
+                data: missileData
+            };
+        }
+        
+        // ========== 폭발 이펙트 ==========
+        function createExplosion(position) {
+            const geometry = new THREE.SphereGeometry(1, 16, 16);
+            const material = new THREE.MeshBasicMaterial({
+                color: 0xff6600,
+                transparent: true,
+                opacity: 1.0
+            });
+            
+            const explosion = new THREE.Mesh(geometry, material);
+            explosion.position.set(position[0], position[1], position[2]);
+            explosion.userData.life = 30;  // 프레임
+            explosion.userData.maxLife = 30;
+            
+            scene.add(explosion);
+            explosions.push(explosion);
+        }
+        
+        // ========== 미사일 업데이트 ==========
+        function updateMissiles(missilesList) {
+            // 기존 미사일과 새 미사일 동기화
+            const activeMissileIds = new Set(missilesList.map(m => m.missile_id));
+            
+            // 삭제된 미사일 제거
+            for (const missileId in missiles) {
+                if (!activeMissileIds.has(missileId)) {
+                    scene.remove(missiles[missileId].mesh);
+                    delete missiles[missileId];
+                }
+            }
+            
+            // 미사일 위치 업데이트
+            missilesList.forEach(missileData => {
+                if (missiles[missileData.missile_id]) {
+                    const missile = missiles[missileData.missile_id];
+                    missile.mesh.position.set(
+                        missileData.position[0],
+                        missileData.position[1],
+                        missileData.position[2]
+                    );
+                    
+                    // 회전 애니메이션
+                    missile.mesh.rotation.z += 0.2;
+                } else {
+                    createMissile(missileData);
+                }
+            });
+        }
+        
+        // ========== 폭발 애니메이션 ==========
+        function updateExplosions() {
+            explosions.forEach((explosion, index) => {
+                explosion.userData.life--;
+                const progress = 1 - (explosion.userData.life / explosion.userData.maxLife);
+                
+                explosion.scale.set(1 + progress * 3, 1 + progress * 3, 1 + progress * 3);
+                explosion.material.opacity = 1 - progress;
+                
+                if (explosion.userData.life <= 0) {
+                    scene.remove(explosion);
+                    explosions.splice(index, 1);
+                }
+            });
+        }
+        
+        // ========== 키보드 입력 ==========
+        document.addEventListener('keydown', (e) => {
+            keys[e.code] = true;
+            
+            // F키로 미사일 발사
+            if (e.code === 'KeyF' && isConnected) {
+                fireMissile();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.code] = false;
+        });
+        
+        // ========== 미사일 발사 ==========
+        function fireMissile() {
+            // 발사 방향 계산 (AI를 향해)
+            const direction = [
+                aiDrone.position.x - playerDrone.position.x,
+                aiDrone.position.y - playerDrone.position.y,
+                aiDrone.position.z - playerDrone.position.z
+            ];
+            
+            // 정규화
+            const length = Math.sqrt(direction[0]**2 + direction[1]**2 + direction[2]**2);
+            if (length > 0) {
+                direction[0] /= length;
+                direction[1] /= length;
+                direction[2] /= length;
+            }
+            
+            websocket.send(JSON.stringify({
+                type: 'fire_missile',
+                direction: direction
+            }));
+        }
+        
+        // ========== 플레이어 업데이트 ==========
+        function updatePlayer() {
+            // 키보드 입력
+            if (keys['KeyW']) playerData.velocity.z -= ACCELERATION;
+            if (keys['KeyS']) playerData.velocity.z += ACCELERATION;
+            if (keys['KeyA']) playerData.velocity.x -= ACCELERATION;
+            if (keys['KeyD']) playerData.velocity.x += ACCELERATION;
+            if (keys['Space']) playerData.velocity.y += ACCELERATION;
+            if (keys['ShiftLeft'] || keys['ShiftRight']) playerData.velocity.y -= ACCELERATION;
+            
+            // 속도 제한
+            const speed = Math.sqrt(
+                playerData.velocity.x ** 2 + 
+                playerData.velocity.y ** 2 + 
+                playerData.velocity.z ** 2
+            );
+            if (speed > MAX_SPEED) {
+                playerData.velocity.x = (playerData.velocity.x / speed) * MAX_SPEED;
+                playerData.velocity.y = (playerData.velocity.y / speed) * MAX_SPEED;
+                playerData.velocity.z = (playerData.velocity.z / speed) * MAX_SPEED;
+            }
+            
+            // 위치 업데이트
+            playerData.position.x += playerData.velocity.x;
+            playerData.position.y += playerData.velocity.y;
+            playerData.position.z += playerData.velocity.z;
+            
+            // 경계 제한
+            playerData.position.x = Math.max(-50, Math.min(50, playerData.position.x));
+            playerData.position.y = Math.max(2, Math.min(50, playerData.position.y));
+            playerData.position.z = Math.max(-50, Math.min(50, playerData.position.z));
+            
+            // 항력
+            playerData.velocity.x *= DRAG;
+            playerData.velocity.y *= DRAG;
+            playerData.velocity.z *= DRAG;
+            
+            // 드론 메시 업데이트
+            if (playerDrone) {
+                playerDrone.position.set(playerData.position.x, playerData.position.y, playerData.position.z);
+                
+                playerDrone.children.forEach(child => {
+                    if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+                        child.rotation.y += child.userData.rotationSpeed || 0.3;
+                    }
+                });
+                
+                playerDrone.rotation.z = -playerData.velocity.x * 0.3;
+                playerDrone.rotation.x = playerData.velocity.z * 0.3;
+            }
+            
+            // 카메라
+            const cameraOffset = { x: 0, y: 15, z: 25 };
+            camera.position.set(
+                playerData.position.x + cameraOffset.x,
+                playerData.position.y + cameraOffset.y,
+                playerData.position.z + cameraOffset.z
+            );
+            camera.lookAt(playerData.position.x, playerData.position.y, playerData.position.z);
+            
+            // 서버로 전송
+            if (isConnected && websocket.readyState === WebSocket.OPEN) {
+                websocket.send(JSON.stringify({
+                    type: 'player_update',
+                    position: [playerData.position.x, playerData.position.y, playerData.position.z],
+                    velocity: [playerData.velocity.x, playerData.velocity.y, playerData.velocity.z]
+                }));
+            }
+        }
+        
+        // ========== UI 업데이트 ==========
+        function updateUI() {
+            // HP 바
+            const playerHpPercent = (playerData.hp / playerData.max_hp) * 100;
+            document.getElementById('player-hp-fill').style.width = playerHpPercent + '%';
+            document.getElementById('player-hp-text').textContent = `${playerData.hp} / ${playerData.max_hp}`;
+            
+            // HP 바 색상 변경
+            const playerHpFill = document.getElementById('player-hp-fill');
+            if (playerHpPercent > 60) {
+                playerHpFill.style.background = 'linear-gradient(90deg, #4ade80, #22c55e)';
+            } else if (playerHpPercent > 30) {
+                playerHpFill.style.background = 'linear-gradient(90deg, #fbbf24, #f59e0b)';
+            } else {
+                playerHpFill.style.background = 'linear-gradient(90deg, #ef4444, #dc2626)';
+            }
+            
+            const aiHpPercent = (aiData.hp / aiData.max_hp) * 100;
+            document.getElementById('ai-hp-fill').style.width = aiHpPercent + '%';
+            document.getElementById('ai-hp-text').textContent = `AI: ${aiData.hp} / ${aiData.max_hp}`;
+            
+            // 레벨 & 경험치
+            document.getElementById('player-level').textContent = playerData.level;
+            document.getElementById('player-coins').textContent = playerData.coins + ' 💰';
+            
+            // 티어
+            const tierBadge = document.getElementById('player-tier');
+            tierBadge.textContent = playerData.tier;
+            tierBadge.style.backgroundColor = getTierColor(playerData.tier);
+        }
+        
+        function getTierColor(tier) {
+            const colors = {
+                'Bronze': '#cd7f32',
+                'Silver': '#c0c0c0',
+                'Gold': '#ffd700',
+                'Platinum': '#e5e4e2',
+                'Diamond': '#b9f2ff',
+                'Master': '#9d4edd',
+                'Legend': '#ff006e'
+            };
+            return colors[tier] || '#cd7f32';
+        }
+        
+        // ========== 알림 표시 ==========
+        function showNotification(message, duration = 2000) {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+        
+        // ========== 장애물 애니메이션 ==========
+        function animateObstacles() {
+            obstacles.forEach(obstacle => {
+                obstacle.rotation.y += obstacle.userData.rotationSpeed || 0.01;
+            });
+        }
+        
+        // ========== 윈도우 리사이즈 ==========
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // ========== 업그레이드 클릭 ==========
+        document.querySelectorAll('.upgrade-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const upgradeType = item.getAttribute('data-type');
+                
+                if (websocket && websocket.readyState === WebSocket.OPEN) {
+                    websocket.send(JSON.stringify({
+                        type: 'upgrade',
+                        upgrade_type: upgradeType
+                    }));
+                }
+            });
+        });
+        
+        // ========== 메인 애니메이션 루프 ==========
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            updatePlayer();
+            animateObstacles();
+            updateExplosions();
+            updateUI();
+            
+            renderer.render(scene, camera);
+        }
+        
+        // ========== WebSocket 연결 ==========
+        function connectWebSocket() {
+            const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsUrl = `${wsProtocol}//${window.location.host}/ws`;
+            
+            console.log('🔌 WebSocket 연결 시도:', wsUrl);
+            
+            websocket = new WebSocket(wsUrl);
+            
+            websocket.onopen = () => {
+                console.log('✅ WebSocket 연결 성공!');
+                isConnected = true;
+                document.getElementById('status').style.borderColor = 'rgba(74, 222, 128, 0.5)';
+                document.querySelector('.status-dot').className = 'status-dot green';
+                document.getElementById('status-text').textContent = '서버 연결됨';
+            };
+            
+            websocket.onmessage = (event) => {
+                const message = JSON.parse(event.data);
+                
+                if (message.type === 'init') {
+                    clientId = message.client_id;
+                    aiDroneId = message.ai_drone_id;
+                    
+                    // 플레이어 데이터 초기화
+                    const pData = message.player_data;
+                    playerData.hp = pData.hp;
+                    playerData.max_hp = pData.max_hp;
+                    playerData.level = pData.level;
+                    playerData.exp = pData.experience;
+                    playerData.coins = pData.coins;
+                    playerData.tier = pData.tier.display;
+                    
+                    // AI 데이터 초기화
+                    const aData = message.ai_data;
+                    aiData.hp = aData.hp;
+                    aiData.max_hp = aData.max_hp;
+                    aiData.position = {
+                        x: aData.position[0],
+                        y: aData.position[1],
+                        z: aData.position[2]
+                    };
+                    
+                    // 장애물 생성
+                    createObstacles(message.obstacles);
+                    
+                    // 로딩 화면 제거
+                    document.getElementById('loading').style.display = 'none';
+                    
+                    showNotification(message.message);
+                    
+                } else if (message.type === 'ai_update') {
+                    const aiState = message.ai_state;
+                    if (aiDrone && aiState.position) {
+                        aiDrone.position.set(
+                            aiState.position[0],
+                            aiState.position[1],
+                            aiState.position[2]
+                        );
+                        
+                        aiData.hp = aiState.hp;
+                        aiData.max_hp = aiState.max_hp;
+                        aiData.position = {
+                            x: aiState.position[0],
+                            y: aiState.position[1],
+                            z: aiState.position[2]
+                        };
+                        
+                        aiDrone.children.forEach(child => {
+                            if (child.geometry && child.geometry.type === 'CylinderGeometry') {
+                                child.rotation.y += child.userData.rotationSpeed || 0.3;
+                            }
+                        });
+                        
+                        if (aiState.velocity) {
+                            aiDrone.rotation.z = -aiState.velocity[0] * 0.5;
+                            aiDrone.rotation.x = aiState.velocity[2] * 0.5;
+                        }
+                    }
+                    
+                } else if (message.type === 'game_state') {
+                    // 미사일 업데이트
+                    if (message.missiles) {
+                        updateMissiles(message.missiles);
+                    }
+                    
+                } else if (message.type === 'missile_fired') {
+                    if (message.success) {
+                        console.log('미사일 발사 성공!');
+                        if (message.missile) {
+                            createMissile(message.missile);
+                        }
+                    }
+                    
+                } else if (message.type === 'ai_missile_fired') {
+                    if (message.missile) {
+                        createMissile(message.missile);
+                    }
+                    
+                } else if (message.type === 'damage_taken') {
+                    playerData.hp = message.hp;
+                    playerData.max_hp = message.max_hp;
+                    
+                    // 폭발 이펙트
+                    if (message.explosion_position) {
+                        createExplosion(message.explosion_position);
+                    }
+                    
+                    showNotification(`-${message.damage} 데미지!`, 1000);
+                    
+                } else if (message.type === 'hit_confirmed') {
+                    // 명중 확인
+                    aiData.hp = message.target_hp;
+                    
+                    if (message.explosion_position) {
+                        createExplosion(message.explosion_position);
+                    }
+                    
+                    showNotification(`명중! -${message.damage}`, 1000);
+                    
+                } else if (message.type === 'kill_confirmed') {
+                    // 킬 확인
+                    const rewards = message.rewards;
+                    playerData.coins = message.player_data.coins;
+                    playerData.level = message.player_data.level;
+                    playerData.exp = message.player_data.experience;
+                    
+                    document.getElementById('kill-count').textContent = rewards.session_kills;
+                    document.getElementById('score-value').textContent = message.player_data.session.score;
+                    
+                    showNotification(`🎯 킬! +${rewards.score_reward} 점수`, 2000);
+                    
+                } else if (message.type === 'player_died') {
+                    showNotification('💀 사망! 리스폰 중...', 3000);
+                    
+                } else if (message.type === 'respawned') {
+                    const pData = message.player_data;
+                    playerData.hp = pData.hp;
+                    playerData.max_hp = pData.max_hp;
+                    playerData.position = {
+                        x: pData.position[0],
+                        y: pData.position[1],
+                        z: pData.position[2]
+                    };
+                    
+                    showNotification(message.message, 2000);
+                    
+                } else if (message.type === 'ai_respawned') {
+                    const aData = message.ai_data;
+                    aiData.hp = aData.hp;
+                    aiData.max_hp = aData.max_hp;
+                    
+                } else if (message.type === 'upgrade_result') {
+                    if (message.success) {
+                        const pData = message.player_data;
+                        playerData.coins = pData.coins;
+                        
+                        showNotification(`✨ 업그레이드 완료!`, 1500);
+                        
+                        // UI 업데이트
+                        Object.keys(pData.upgrades).forEach(key => {
+                            const upgrade = pData.upgrades[key];
+                            const item = document.querySelector(`[data-type="${key}"]`);
+                            if (item) {
+                                item.querySelector('.upgrade-level').textContent = upgrade.level;
+                                item.querySelector('.upgrade-cost').textContent = upgrade.cost + ' 💰';
+                                
+                                if (!upgrade.can_upgrade) {
+                                    item.classList.add('disabled');
+                                }
+                            }
+                        });
+                    } else {
+                        showNotification(`❌ 업그레이드 실패: ${message.reason}`, 2000);
+                    }
+                }
+            };
+            
+            websocket.onerror = (error) => {
+                console.error('❌ WebSocket 오류:', error);
+            };
+            
+            websocket.onclose = () => {
+                console.log('🔌 WebSocket 연결 종료');
+                isConnected = false;
+                document.getElementById('status').style.borderColor = 'rgba(239, 68, 68, 0.5)';
+                document.querySelector('.status-dot').className = 'status-dot red';
+                document.getElementById('status-text').textContent = '서버 연결 끊김';
+                
+                setTimeout(connectWebSocket, 3000);
+            };
+        }
+        
+        // ========== 게임 시작 ==========
+        function startGame() {
+            console.log('🎮 게임 시작!');
+            initThreeJS();
+            connectWebSocket();
+            animate();
+        }
+        
+        window.addEventListener('load', startGame);
+    </script>
+</body>
+</html>
