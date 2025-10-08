@@ -396,7 +396,7 @@ async def game_loop():
                                 'coin_reward': 10,
                                 'exp_reward': 10,
                                 'current_exp': player.experience,
-                                'max_exp': player.exp_to_next_level
+                                'max_exp': player.get_experience_to_next_level()
                             })
                             
                             # 미사일 적중으로 레벨업 확인
