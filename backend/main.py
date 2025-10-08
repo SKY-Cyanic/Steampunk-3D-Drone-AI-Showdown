@@ -96,7 +96,8 @@ async def websocket_endpoint(websocket: WebSocket):
         ai_drone = AdvancedAIDrone(
             drone_id=ai_id,
             initial_position=ai_spawn,
-            difficulty=difficulty
+            difficulty=difficulty,
+            player_level=player.level  # 레벨 전달!
         )
         game_state.ai_drones[ai_id] = ai_drone
         ai_ids.append(ai_id)
@@ -396,13 +397,40 @@ async def game_loop():
                                 'coin_reward': 10,
                                 'exp_reward': 10,
                                 'current_exp': player.experience,
-                                'max_exp': player.exp_to_next_level
+                                'max_exp': player.get_experience_to_next_level()
                             })
                             
-                            # 미사일 적중으로 레벨업 확인
+                            # 미사일 적중으로 레벨업 확인 + AI 추가
                             if new_level > old_level:
                                 new_map = MapGenerator.generate_dynamic_map(new_level)
                                 game_state.player_maps[attacker_id] = new_map
+                                
+                                # 새로운 AI 수 확인
+                                old_ai_count = get_ai_count_for_level(old_level)
+                                new_ai_count = get_ai_count_for_level(new_level)
+                                
+                                # AI 추가 생성 (수가 증가한 경우)
+                                if new_ai_count > old_ai_count:
+                                    new_difficulty = get_difficulty_for_level(new_level)
+                                    for i in range(old_ai_count, new_ai_count):
+                                        new_ai_id = f"ai_{attacker_id}_{i}"
+                                        spawn_idx = (i + 4) % len(new_map['spawn_points'])
+                                        new_ai_spawn = new_map['spawn_points'][spawn_idx]
+                                        
+                                        new_ai_drone = AdvancedAIDrone(
+                                            drone_id=new_ai_id,
+                                            initial_position=new_ai_spawn,
+                                            difficulty=new_difficulty,
+                                            player_level=new_level
+                                        )
+                                        game_state.ai_drones[new_ai_id] = new_ai_drone
+                                        
+                                        # 새 AI 알림
+                                        await game_state.connected_clients[attacker_id].send_json({
+                                            'type': 'ai_spawned',
+                                            'ai_id': new_ai_id,
+                                            'ai_data': new_ai_drone.get_state()
+                                        })
                                 
                                 await game_state.connected_clients[attacker_id].send_json({
                                     'type': 'map_expanded',
@@ -410,7 +438,8 @@ async def game_loop():
                                     'map_size': new_map['map_size'],
                                     'spawn_points': new_map['spawn_points'],
                                     'new_level': new_level,
-                                    'message': f'🎉 레벨 {new_level}! 맵이 {new_map["map_size"]}x{new_map["map_size"]}로 확장되었습니다!'
+                                    'ai_count': new_ai_count,
+                                    'message': f'🎉 레벨 {new_level}! 맵: {new_map["map_size"]}x{new_map["map_size"]}, AI: {new_ai_count}대'
                                 })
                         
                         # AI 사망
@@ -427,10 +456,37 @@ async def game_loop():
                                     'player_data': player.to_dict()
                                 })
                                 
-                                # 레벨업 확인 및 맵 확장!
+                                # 레벨업 확인 및 맵 확장 + AI 추가!
                                 if new_level > old_level:
                                     new_map = MapGenerator.generate_dynamic_map(new_level)
                                     game_state.player_maps[attacker_id] = new_map
+                                    
+                                    # 새로운 AI 수 확인
+                                    old_ai_count = get_ai_count_for_level(old_level)
+                                    new_ai_count = get_ai_count_for_level(new_level)
+                                    
+                                    # AI 추가 생성 (수가 증가한 경우)
+                                    if new_ai_count > old_ai_count:
+                                        new_difficulty = get_difficulty_for_level(new_level)
+                                        for i in range(old_ai_count, new_ai_count):
+                                            new_ai_id = f"ai_{attacker_id}_{i}"
+                                            spawn_idx = (i + 4) % len(new_map['spawn_points'])
+                                            new_ai_spawn = new_map['spawn_points'][spawn_idx]
+                                            
+                                            new_ai_drone = AdvancedAIDrone(
+                                                drone_id=new_ai_id,
+                                                initial_position=new_ai_spawn,
+                                                difficulty=new_difficulty,
+                                                player_level=new_level
+                                            )
+                                            game_state.ai_drones[new_ai_id] = new_ai_drone
+                                            
+                                            # 새 AI 알림
+                                            await game_state.connected_clients[attacker_id].send_json({
+                                                'type': 'ai_spawned',
+                                                'ai_id': new_ai_id,
+                                                'ai_data': new_ai_drone.get_state()
+                                            })
                                     
                                     await game_state.connected_clients[attacker_id].send_json({
                                         'type': 'map_expanded',
@@ -438,7 +494,8 @@ async def game_loop():
                                         'map_size': new_map['map_size'],
                                         'spawn_points': new_map['spawn_points'],
                                         'new_level': new_level,
-                                        'message': f'🎉 레벨 {new_level}! 맵이 {new_map["map_size"]}x{new_map["map_size"]}로 확장되었습니다!'
+                                        'ai_count': new_ai_count,
+                                        'message': f'🎉 레벨 {new_level}! 맵: {new_map["map_size"]}x{new_map["map_size"]}, AI: {new_ai_count}대'
                                     })
                             
                             asyncio.create_task(respawn_ai(target_id, 5.0))

@@ -913,6 +913,21 @@
                     // AI 충돌 이펙트
                     if (msg.explosion_position) createExplosion(msg.explosion_position);
                     
+                } else if (msg.type === 'ai_spawned') {
+                    // 새 AI 드론 추가!
+                    const aiData = msg.ai_data;
+                    const aiId = msg.ai_id;
+                    
+                    const aiDrone = createAIDrone(aiData);
+                    aiDrones[aiId] = aiDrone;
+                    aiDataMap[aiId] = {
+                        position: { x: aiData.position[0], y: aiData.position[1], z: aiData.position[2] },
+                        hp: aiData.hp,
+                        max_hp: aiData.max_hp
+                    };
+                    
+                    showNotification(`🤖 새로운 AI 드론 출현!`, 2000);
+                    
                 } else if (msg.type === 'map_expanded') {
                     // 맵 확장!
                     currentMapSize = msg.map_size;
@@ -924,7 +939,7 @@
                     // 대형 알림
                     showNotification(`🎉 레벨 ${playerData.level}!`, 1500);
                     setTimeout(() => {
-                        showNotification(`🗺️ 맵: ${currentMapSize}x${currentMapSize}`, 3000);
+                        showNotification(`🗺️ ${msg.message}`, 3000);
                     }, 1600);
                     
                 } else if (msg.type === 'upgrade_result') {

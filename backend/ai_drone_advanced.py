@@ -15,7 +15,7 @@ class AdvancedAIDrone:
     다양한 행동 패턴 (공격/방어/회피)과 전략적 의사결정을 수행합니다.
     """
     
-    def __init__(self, drone_id: str, initial_position: List[float], difficulty: str = 'normal'):
+    def __init__(self, drone_id: str, initial_position: List[float], difficulty: str = 'normal', player_level: int = 1):
         """
         AI 드론 초기화
         
@@ -23,22 +23,26 @@ class AdvancedAIDrone:
             drone_id: 드론의 고유 ID
             initial_position: 초기 위치 [x, y, z]
             difficulty: 난이도 ('easy', 'normal', 'hard', 'extreme')
+            player_level: 플레이어 레벨 (스케일링용)
         """
         self.drone_id = drone_id
         self.position = np.array(initial_position, dtype=float)
         self.velocity = np.array([0.0, 0.0, 0.0], dtype=float)
         
+        # 레벨 정보
+        self.player_level = player_level
+        
         # 난이도 설정
         self.difficulty = difficulty
         self._apply_difficulty_settings()
         
-        # 전투 관련 속성
-        self.hp = 100
-        self.max_hp = 100
+        # 레벨 스케일링 적용
+        self._apply_level_scaling()
+        
+        # 전투 관련 속성 (레벨 스케일링 후 설정됨)
         self.is_alive = True
         self.last_missile_time = 0
         self.missile_cooldown = 1.5
-        self.missile_damage = 20
         self.attack_range = 35.0
         
         # 통계
@@ -110,8 +114,24 @@ class AdvancedAIDrone:
         self.reaction_time = settings['reaction_time']
         self.aim_accuracy = settings['aim_accuracy']
         self.aggression = settings['aggression']
-        self.max_hp = int(100 * settings['hp_multiplier'])
+        # 기본 HP와 데미지 (레벨 스케일링 전)
+        self.base_max_hp = int(100 * settings['hp_multiplier'])
+        self.base_missile_damage = 20
+        
+    def _apply_level_scaling(self) -> None:
+        """플레이어 레벨에 따른 AI 능력치 스케일링"""
+        level = self.player_level
+        
+        # 레벨당 HP 증가: 레벨 1 = 100%, 레벨 10 = 180%, 레벨 20 = 260%
+        hp_scaling = 1.0 + (level - 1) * 0.08  # 레벨당 8% 증가
+        self.max_hp = int(self.base_max_hp * hp_scaling)
         self.hp = self.max_hp
+        
+        # 레벨당 데미지 증가: 레벨 1 = 20, 레벨 10 = 32, 레벨 20 = 46
+        damage_scaling = 1.0 + (level - 1) * 0.06  # 레벨당 6% 증가
+        self.missile_damage = int(self.base_missile_damage * damage_scaling)
+        
+        print(f"🤖 AI 드론 생성: 레벨 {level} | HP {self.max_hp} | 데미지 {self.missile_damage}")
         
     def _build_simple_network(self) -> torch.nn.Module:
         """간단한 신경망 구조 정의 (강화학습용)"""
