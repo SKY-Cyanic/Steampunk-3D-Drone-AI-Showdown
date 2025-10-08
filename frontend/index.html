@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🚁 3D 드론 AI 대전</title>
+    <title>🚁 3D 드론 AI 대전 - 초고속 전투</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; overflow: hidden; background: #000; }
         #game-container { width: 100vw; height: 100vh; position: relative; }
         
+        /* 플레이어 HP */
         .hp-bar-container {
             position: absolute;
             width: 350px;
@@ -32,7 +33,17 @@
         }
         
         #player-hp-bar { top: 20px; left: 50%; transform: translateX(-50%); }
-        #ai-hp-container { bottom: 20px; left: 50%; transform: translateX(-50%); width: 350px; }
+        
+        /* AI HP 바들 - 중앙 하단 (오른쪽으로 더 이동) */
+        #ai-hp-container {
+            position: absolute;
+            bottom: 20px;
+            left: 55%;  /* 50% → 55%로 이동 (오른쪽) */
+            transform: translateX(-50%);
+            width: 400px;  /* 350px → 400px로 확장 */
+            max-height: 200px;
+            overflow-y: auto;
+        }
         
         .ai-hp-bar {
             width: 100%;
@@ -57,6 +68,7 @@
             font-size: 14px;
         }
         
+        /* 정보 패널들 */
         #info-panel {
             position: absolute;
             top: 80px;
@@ -232,7 +244,7 @@
         <div id="info-panel">
             <h2>👤 플레이어</h2>
             <div class="stat"><span class="label">레벨:</span><span class="value" id="player-level">1</span></div>
-            <div class="stat"><span class="label">티어:</span><span class="tier-badge" id="player-tier">Bronze</span></div>
+            <div class="stat"><span class="label">맵 크기:</span><span class="value" id="map-size">200x200</span></div>
             <div class="stat"><span class="label">코인:</span><span class="value" id="player-coins">0 💰</span></div>
             <div class="exp-bar-container"><div class="exp-bar-fill" id="exp-bar" style="width: 0%;"></div></div>
             <div class="stat" style="font-size: 11px;"><span id="exp-text">0 / 100 EXP</span></div>
@@ -255,7 +267,7 @@
         <div id="controls">
             <h3>⌨️ 조작</h3>
             <div><span class="key">W/A/S/D</span> 이동 | <span class="key">Space</span> 상승 | <span class="key">Shift</span> 하강</div>
-            <div style="margin-top: 8px;"><span class="key">F</span> 미사일 발사 | <span class="key">마우스 드래그</span> 카메라 회전</div>
+            <div style="margin-top: 8px;"><span class="key">F</span> 초고속 미사일 🚀 | <span class="key">마우스 드래그</span> 카메라</div>
         </div>
         
         <div id="status"><span class="status-dot red"></span><span id="status-text">연결 중...</span></div>
@@ -267,31 +279,30 @@
     <script>
         let scene, camera, renderer;
         let playerDrone;
-        let aiDrones = {};  // 여러 AI 지원
+        let aiDrones = {};
         let obstacles = [];
         let missiles = {};
         let explosions = [];
-        let particles = [];
         let websocket, isConnected = false;
         let clientId, aiIds = [];
         
-        let playerData = { position: {x:0, y:15, z:60}, velocity: {x:0, y:0, z:0}, hp: 100, max_hp: 100, level: 1, exp: 0, coins: 0, tier: 'Bronze' };
+        let playerData = { position: {x:0, y:15, z:60}, velocity: {x:0, y:0, z:0}, hp: 100, max_hp: 100, level: 1, exp: 0, coins: 0 };
         let aiDataMap = {};
+        let currentMapSize = 200;
         
         let keys = {};
-        const ACCELERATION = 0.07, MAX_SPEED = 1.2, DRAG = 0.93, MAP_SIZE = 200;
+        const ACCELERATION = 0.07, MAX_SPEED = 1.2, DRAG = 0.93;
         
         // 카메라 회전
         let cameraRotationX = 0, cameraRotationY = 0;
         let isDragging = false, lastMouseX = 0, lastMouseY = 0;
-        let frameCount = 0;
         
         function initThreeJS() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0e27);
-            scene.fog = new THREE.Fog(0x0a0e27, 80, 180);
+            scene.fog = new THREE.Fog(0x0a0e27, 100, 250);
             
-            camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera = new THREE.PerspectiveCamera(80, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 25, 50);
             
             renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -316,17 +327,6 @@
                 light.position.set(x, y, z);
                 scene.add(light);
             });
-            
-            // 바닥
-            const groundGeom = new THREE.PlaneGeometry(MAP_SIZE, MAP_SIZE, 50, 50);
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
-            const ground = new THREE.Mesh(groundGeom, groundMat);
-            ground.rotation.x = -Math.PI / 2;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            
-            const grid = new THREE.GridHelper(MAP_SIZE, 40, 0x4ecdc4, 0x2d3561);
-            scene.add(grid);
             
             createPlayerDrone();
             
@@ -375,6 +375,27 @@
             });
             
             console.log('✅ Three.js 초기화!');
+        }
+        
+        function createGround(mapSize) {
+            // 기존 바닥 제거
+            scene.children.forEach(child => {
+                if (child.name === 'ground' || child.name === 'grid') {
+                    scene.remove(child);
+                }
+            });
+            
+            const groundGeom = new THREE.PlaneGeometry(mapSize, mapSize, 50, 50);
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.9 });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            ground.name = 'ground';
+            scene.add(ground);
+            
+            const grid = new THREE.GridHelper(mapSize, Math.floor(mapSize / 5), 0x4ecdc4, 0x2d3561);
+            grid.name = 'grid';
+            scene.add(grid);
         }
         
         function createPlayerDrone() {
@@ -432,6 +453,10 @@
         }
         
         function createObstacles(obstaclesData) {
+            // 기존 장애물 제거
+            obstacles.forEach(obs => scene.remove(obs));
+            obstacles = [];
+            
             obstaclesData.forEach(obsData => {
                 let obstacle;
                 const {type, position, size, color = 0xb45309, rotation} = obsData;
@@ -476,6 +501,7 @@
                     obstacle.position.set(...position);
                     obstacle.castShadow = true;
                     obstacle.userData.rotSpeed = Math.random() * 0.01;
+                    obstacle.userData.collision_radius = obsData.collision_radius || 5;
                     scene.add(obstacle);
                     obstacles.push(obstacle);
                 }
@@ -582,7 +608,6 @@
         document.addEventListener('keyup', (e) => keys[e.code] = false);
         
         function fireMissile() {
-            // 가장 가까운 AI 찾기
             let closestAI = null;
             let minDist = Infinity;
             
@@ -636,9 +661,9 @@
             playerData.position.y += playerData.velocity.y;
             playerData.position.z += playerData.velocity.z;
             
-            const boundary = MAP_SIZE / 2 - 5;
+            const boundary = currentMapSize / 2 - 5;
             playerData.position.x = Math.max(-boundary, Math.min(boundary, playerData.position.x));
-            playerData.position.y = Math.max(3, Math.min(60, playerData.position.y));
+            playerData.position.y = Math.max(3, Math.min(80, playerData.position.y));
             playerData.position.z = Math.max(-boundary, Math.min(boundary, playerData.position.z));
             
             playerData.velocity.x *= DRAG;
@@ -656,7 +681,7 @@
                 playerDrone.rotation.x = playerData.velocity.z * 0.25;
             }
             
-            // 카메라 (회전 적용)
+            // 카메라
             const dist = 35;
             const height = 20;
             const offsetX = Math.sin(cameraRotationY) * dist;
@@ -684,10 +709,9 @@
             
             document.getElementById('player-level').textContent = playerData.level;
             document.getElementById('player-coins').textContent = playerData.coins + ' 💰';
-            document.getElementById('player-tier').textContent = playerData.tier;
-            document.getElementById('player-tier').style.backgroundColor = getTierColor(playerData.tier);
+            document.getElementById('map-size').textContent = currentMapSize + 'x' + currentMapSize;
             
-            // AI HP 바들 업데이트
+            // AI HP 바들
             const container = document.getElementById('ai-hp-container');
             container.innerHTML = '';
             
@@ -704,11 +728,6 @@
                 `;
                 container.appendChild(barDiv);
             }
-        }
-        
-        function getTierColor(tier) {
-            const colors = { 'Bronze': '#cd7f32', 'Silver': '#c0c0c0', 'Gold': '#ffd700', 'Platinum': '#e5e4e2', 'Diamond': '#b9f2ff', 'Master': '#9d4edd', 'Legend': '#ff006e' };
-            return colors[tier] || '#cd7f32';
         }
         
         function showNotification(msg, dur = 2000) {
@@ -733,7 +752,6 @@
             obstacles.forEach(obs => obs.rotation.y += obs.userData.rotSpeed || 0.01);
             updateExplosions();
             updateUI();
-            frameCount++;
             renderer.render(scene, camera);
         }
         
@@ -754,6 +772,7 @@
                 if (msg.type === 'init') {
                     clientId = msg.client_id;
                     aiIds = msg.ai_ids || [];
+                    currentMapSize = msg.map_size;
                     
                     const pData = msg.player_data;
                     playerData.hp = pData.hp;
@@ -761,12 +780,14 @@
                     playerData.level = pData.level;
                     playerData.exp = pData.experience;
                     playerData.coins = pData.coins;
-                    playerData.tier = pData.tier.display;
                     playerData.position = { x: pData.position[0], y: pData.position[1], z: pData.position[2] };
                     
                     if (playerDrone) playerDrone.position.set(...pData.position);
                     
-                    // AI 드론들 생성
+                    // 바닥 생성
+                    createGround(currentMapSize);
+                    
+                    // AI 드론들
                     msg.ai_drones.forEach(aiData => {
                         const aiDrone = createAIDrone(aiData);
                         aiDrones[aiData.drone_id] = aiDrone;
@@ -779,7 +800,7 @@
                     
                     createObstacles(msg.obstacles);
                     document.getElementById('loading').style.display = 'none';
-                    showNotification(msg.message);
+                    showNotification(msg.message, 3000);
                     
                 } else if (msg.type === 'ai_updates') {
                     msg.ai_states.forEach(aiState => {
@@ -830,7 +851,8 @@
                         aiDataMap[msg.target_id].max_hp = msg.target_max_hp;
                     }
                     if (msg.explosion_position) createExplosion(msg.explosion_position);
-                    showNotification(`🎯 명중! -${msg.damage}`, 1000);
+                    playerData.coins += msg.coin_reward || 0;
+                    showNotification(`🎯 적중! +10코인 +10EXP`, 1200);
                     
                 } else if (msg.type === 'kill_confirmed') {
                     const rewards = msg.rewards;
@@ -838,8 +860,8 @@
                     playerData.level = msg.player_data.level;
                     playerData.exp = msg.player_data.experience;
                     document.getElementById('kill-count').textContent = rewards.session_kills;
-                    document.getElementById('score-value').textContent = msg.player_data.session.score;
-                    showNotification(`🔥 킬! +${rewards.score_reward}`, 2500);
+                    document.getElementById('score-value').textContent = msg.player_data.session_score;
+                    showNotification(`🔥 킬! +100코인!`, 2500);
                     
                 } else if (msg.type === 'player_died') {
                     showNotification('💀 사망! 3초 후 리스폰...', 3000);
@@ -866,6 +888,17 @@
                         hp: aiData.hp,
                         max_hp: aiData.max_hp
                     };
+                    
+                } else if (msg.type === 'ai_collision') {
+                    // AI 충돌 이펙트
+                    if (msg.explosion_position) createExplosion(msg.explosion_position);
+                    
+                } else if (msg.type === 'map_expanded') {
+                    // 맵 확장!
+                    currentMapSize = msg.map_size;
+                    createGround(currentMapSize);
+                    createObstacles(msg.obstacles);
+                    showNotification(msg.message, 4000);
                     
                 } else if (msg.type === 'upgrade_result') {
                     if (msg.success) {

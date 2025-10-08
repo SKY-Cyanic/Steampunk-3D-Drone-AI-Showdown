@@ -1,5 +1,5 @@
 """
-3D 드론 AI 대전 시뮬레이터 - 완전히 작동하는 버전
+3D 드론 AI 대전 시뮬레이터 - 레벨별 맵 확장 버전
 """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
@@ -25,8 +25,7 @@ class GameState:
         self.connected_clients: Dict[str, WebSocket] = {}
         self.players: Dict[str, Player] = {}
         self.ai_drones: Dict[str, AdvancedAIDrone] = {}
-        self.obstacles = MapGenerator.generate_large_map(size=200, obstacle_count=35)
-        self.spawn_points = MapGenerator.get_spawn_points(map_size=200, count=8)
+        self.player_maps: Dict[str, Dict] = {}  # 플레이어별 맵 정보
         self.physics_engine = PhysicsEngine()
         self.combat_system = CombatSystem()
         self.game_loop_running = False
@@ -74,9 +73,15 @@ async def websocket_endpoint(websocket: WebSocket):
     
     # 플레이어 생성
     player = Player(player_id=client_id, username=f"Player_{len(game_state.players) + 1}")
-    spawn_idx = len(game_state.players) % len(game_state.spawn_points)
-    player.position = game_state.spawn_points[spawn_idx]
     game_state.players[client_id] = player
+    
+    # 레벨에 맞는 맵 생성
+    map_data = MapGenerator.generate_dynamic_map(player.level)
+    game_state.player_maps[client_id] = map_data
+    
+    # 스폰 위치 설정
+    spawn_idx = len(game_state.players) % len(map_data['spawn_points'])
+    player.position = map_data['spawn_points'][spawn_idx]
     
     # AI 드론 생성 (레벨 기반)
     difficulty = get_difficulty_for_level(player.level)
@@ -85,8 +90,8 @@ async def websocket_endpoint(websocket: WebSocket):
     ai_ids = []
     for i in range(ai_count):
         ai_id = f"ai_{client_id}_{i}"
-        ai_spawn_idx = (spawn_idx + 4 + i) % len(game_state.spawn_points)
-        ai_spawn = game_state.spawn_points[ai_spawn_idx]
+        ai_spawn_idx = (spawn_idx + 4 + i) % len(map_data['spawn_points'])
+        ai_spawn = map_data['spawn_points'][ai_spawn_idx]
         
         ai_drone = AdvancedAIDrone(
             drone_id=ai_id,
@@ -103,13 +108,14 @@ async def websocket_endpoint(websocket: WebSocket):
         'type': 'init',
         'client_id': client_id,
         'ai_ids': ai_ids,
-        'obstacles': game_state.obstacles,
+        'obstacles': map_data['obstacles'],
+        'map_size': map_data['map_size'],
+        'spawn_points': map_data['spawn_points'],
         'player_data': player.to_dict(),
         'ai_drones': ai_drones_data,
         'difficulty': difficulty,
         'ai_count': ai_count,
-        'map_size': 200,
-        'message': f'환영합니다! AI {ai_count}대 ({difficulty})'
+        'message': f'환영합니다! 맵: {map_data["map_size"]}x{map_data["map_size"]}, AI: {ai_count}대 ({difficulty})'
     })
     
     # 게임 루프 시작
@@ -130,9 +136,12 @@ async def websocket_endpoint(websocket: WebSocket):
                 player.position = message['position']
                 player.velocity = message.get('velocity', [0, 0, 0])
                 
-                # 장애물 충돌
+                # 장애물 충돌 (맵별로 체크)
+                player_map = game_state.player_maps.get(client_id, {})
+                obstacles = player_map.get('obstacles', [])
+                
                 collision = game_state.physics_engine.check_obstacle_collision(
-                    player.position, player.velocity, game_state.obstacles
+                    player.position, player.velocity, obstacles
                 )
                 
                 if collision.collided and collision.damage > 0:
@@ -163,23 +172,32 @@ async def websocket_endpoint(websocket: WebSocket):
                     
                     ai_drone = game_state.ai_drones[ai_id]
                     
-                    # AI 물리 충돌
+                    # AI 물리 충돌 체크 (중요!)
                     ai_collision = game_state.physics_engine.check_obstacle_collision(
                         ai_drone.position.tolist(),
                         ai_drone.velocity.tolist(),
-                        game_state.obstacles
+                        obstacles
                     )
                     
                     if ai_collision.collided and ai_collision.damage > 0:
                         ai_drone.take_damage(ai_collision.damage, "obstacle")
                         if ai_collision.bounce_velocity:
                             ai_drone.velocity = np.array(ai_collision.bounce_velocity, dtype=float)
+                        
+                        # AI 충돌 알림
+                        await websocket.send_json({
+                            'type': 'ai_collision',
+                            'ai_id': ai_id,
+                            'damage': ai_collision.damage,
+                            'hp': ai_drone.hp,
+                            'explosion_position': ai_collision.impact_position
+                        })
                     
                     # AI 위치 업데이트
                     ai_state = ai_drone.update_position(
                         player_position=player.position,
                         player_hp=player.hp,
-                        obstacles=game_state.obstacles,
+                        obstacles=obstacles,
                         current_time=current_time
                     )
                     
@@ -189,13 +207,13 @@ async def websocket_endpoint(websocket: WebSocket):
                             player.position, player.velocity
                         )
                         
-                        # 빠른 미사일 생성
+                        # 초고속 미사일
                         missile = game_state.combat_system.create_missile(
                             owner_id=ai_id,
                             position=ai_drone.position.tolist(),
                             direction=direction,
                             damage=ai_drone.missile_damage,
-                            speed=3.5  # 빠르게!
+                            speed=15.0  # 초고속!
                         )
                         
                         await websocket.send_json({
@@ -223,13 +241,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     direction = message.get('direction', [0, 0, 1])
                     damage = player.upgrades.get_damage_bonus()
                     
-                    # 플레이어 미사일 (더 빠르게)
+                    # 플레이어 초고속 미사일
                     missile = game_state.combat_system.create_missile(
                         owner_id=client_id,
                         position=player.position,
                         direction=direction,
                         damage=damage,
-                        speed=4.0  # 플레이어는 더 빠르게!
+                        speed=20.0  # 초고속!
                     )
                     
                     await websocket.send_json({
@@ -266,12 +284,29 @@ async def websocket_endpoint(websocket: WebSocket):
                         'type': 'upgrade_result',
                         'success': False
                     })
+            
+            elif message['type'] == 'level_up':
+                # 레벨업 시 맵 재생성
+                if client_id in game_state.players:
+                    player = game_state.players[client_id]
+                    new_map = MapGenerator.generate_dynamic_map(player.level)
+                    game_state.player_maps[client_id] = new_map
+                    
+                    await websocket.send_json({
+                        'type': 'map_expanded',
+                        'obstacles': new_map['obstacles'],
+                        'map_size': new_map['map_size'],
+                        'spawn_points': new_map['spawn_points'],
+                        'message': f'맵이 {new_map["map_size"]}x{new_map["map_size"]}로 확장되었습니다!'
+                    })
                     
     except WebSocketDisconnect:
         if client_id in game_state.connected_clients:
             del game_state.connected_clients[client_id]
         if client_id in game_state.players:
             del game_state.players[client_id]
+        if client_id in game_state.player_maps:
+            del game_state.player_maps[client_id]
         
         # AI 드론 제거
         for ai_id in list(game_state.ai_drones.keys()):
@@ -281,7 +316,7 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"Client {client_id} disconnected")
 
 async def game_loop():
-    """게임 메인 루프 - 미사일 충돌 처리"""
+    """게임 메인 루프"""
     print("🎮 Game loop started!")
     
     while game_state.game_loop_running:
@@ -343,10 +378,10 @@ async def game_loop():
                     ai_drone = game_state.ai_drones[target_id]
                     ai_drone.take_damage(damage, attacker_id)
                     
-                    # 공격자가 플레이어면 보상
+                    # 공격자가 플레이어면 보상 (미사일 적중 보상!)
                     if attacker_id in game_state.players:
                         player = game_state.players[attacker_id]
-                        player.record_missile_hit()
+                        player.record_missile_hit()  # 10코인 + 10EXP 즉시 지급!
                         
                         if attacker_id in game_state.connected_clients:
                             await game_state.connected_clients[attacker_id].send_json({
@@ -355,12 +390,14 @@ async def game_loop():
                                 'damage': damage,
                                 'target_hp': ai_drone.hp,
                                 'target_max_hp': ai_drone.max_hp,
-                                'explosion_position': collision['position']
+                                'explosion_position': collision['position'],
+                                'coin_reward': 10,
+                                'exp_reward': 10
                             })
                         
                         # AI 사망
                         if ai_drone.hp <= 0:
-                            kill_reward = player.record_kill(target_id)
+                            kill_reward = player.record_kill(target_id)  # 100코인 지급!
                             
                             if attacker_id in game_state.connected_clients:
                                 await game_state.connected_clients[attacker_id].send_json({
@@ -393,10 +430,11 @@ async def game_loop():
 
 async def respawn_player(player_id: str, delay: float):
     await asyncio.sleep(delay)
-    if player_id in game_state.players:
+    if player_id in game_state.players and player_id in game_state.player_maps:
         player = game_state.players[player_id]
-        spawn_idx = hash(player_id) % len(game_state.spawn_points)
-        player.position = game_state.spawn_points[spawn_idx]
+        spawn_points = game_state.player_maps[player_id]['spawn_points']
+        spawn_idx = hash(player_id) % len(spawn_points)
+        player.position = spawn_points[spawn_idx]
         player.respawn()
         
         if player_id in game_state.connected_clients:
@@ -408,30 +446,35 @@ async def respawn_player(player_id: str, delay: float):
 async def respawn_ai(ai_id: str, delay: float):
     await asyncio.sleep(delay)
     if ai_id in game_state.ai_drones:
-        ai_drone = game_state.ai_drones[ai_id]
-        spawn_idx = (hash(ai_id) + 4) % len(game_state.spawn_points)
-        ai_drone.respawn(game_state.spawn_points[spawn_idx])
+        # AI의 소유자 찾기
+        owner_id = '_'.join(ai_id.split('_')[:2])  # "ai_player_XXX" → "player_XXX"
+        owner_id = owner_id.replace('ai_', '')
         
-        # 소유자에게 알림
-        owner_id = ai_id.split('_')[1]
-        if owner_id in game_state.connected_clients:
-            await game_state.connected_clients[owner_id].send_json({
-                'type': 'ai_respawned',
-                'ai_id': ai_id,
-                'ai_data': ai_drone.get_state()
-            })
+        if owner_id in game_state.player_maps:
+            ai_drone = game_state.ai_drones[ai_id]
+            spawn_points = game_state.player_maps[owner_id]['spawn_points']
+            spawn_idx = (hash(ai_id) + 4) % len(spawn_points)
+            ai_drone.respawn(spawn_points[spawn_idx])
+            
+            if owner_id in game_state.connected_clients:
+                await game_state.connected_clients[owner_id].send_json({
+                    'type': 'ai_respawned',
+                    'ai_id': ai_id,
+                    'ai_data': ai_drone.get_state()
+                })
 
 if __name__ == "__main__":
     import uvicorn
     print("=" * 70)
-    print("🚁 3D 드론 AI 대전 시뮬레이터 - 수정 버전")
+    print("🚁 3D 드론 AI 대전 시뮬레이터 - 최종 버전")
     print("=" * 70)
-    print("✨ 수정사항:")
-    print("  - ✅ np.float32 → float 변경 완료")
-    print("  - ✅ 미사일 속도 대폭 증가 (3.5~4.0)")
-    print("  - ✅ 레벨별 AI 자동 증가")
-    print("  - ✅ AI 물리 충돌 적용")
-    print("  - ✅ 모든 기능 작동 확인")
+    print("✨ 새로운 기능:")
+    print("  - ✅ 레벨별 맵 확장 (200~600)")
+    print("  - ✅ 초고속 미사일 (15~20)")
+    print("  - ✅ AI 킬 100코인")
+    print("  - ✅ 미사일 적중 10코인+10EXP")
+    print("  - ✅ AI 충돌 데미지")
+    print("  - ✅ 충돌 박스 개선")
     print("=" * 70)
     print("서버: http://localhost:8000")
     print("=" * 70)

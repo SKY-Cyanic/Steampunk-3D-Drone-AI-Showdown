@@ -244,10 +244,10 @@ class Player:
         self.stats.kills += 1
         self.session_kills += 1
         
-        # 킬 보상
+        # 킬 보상 (대폭 증가!)
         score_reward = 100
         exp_reward = 50
-        coin_reward = 10
+        coin_reward = 100  # 10 → 100 코인으로 증가!
         
         self.session_score += score_reward
         self.coins += coin_reward
@@ -286,8 +286,12 @@ class Player:
         return False
     
     def record_missile_hit(self) -> None:
-        """미사일 명중 기록"""
+        """미사일 명중 기록 + 즉시 보상!"""
         self.stats.missiles_hit += 1
+        
+        # 미사일 적중 시 즉시 보상
+        self.coins += 10
+        self.add_experience(10)
     
     def end_game_session(self, won: bool) -> Dict:
         """
