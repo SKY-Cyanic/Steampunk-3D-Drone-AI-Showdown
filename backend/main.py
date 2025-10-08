@@ -447,8 +447,9 @@ async def respawn_ai(ai_id: str, delay: float):
     await asyncio.sleep(delay)
     if ai_id in game_state.ai_drones:
         # AI의 소유자 찾기
-        owner_id = '_'.join(ai_id.split('_')[:2])  # "ai_player_XXX" → "player_XXX"
-        owner_id = owner_id.replace('ai_', '')
+        # ai_id 형식: "ai_{client_id}_{index}" → 원래 client_id 복원
+        owner_and_index = ai_id[3:]  # "ai_" 접두사 제거
+        owner_id = owner_and_index.rsplit('_', 1)[0]
         
         if owner_id in game_state.player_maps:
             ai_drone = game_state.ai_drones[ai_id]
