@@ -381,7 +381,9 @@ async def game_loop():
                     # 공격자가 플레이어면 보상 (미사일 적중 보상!)
                     if attacker_id in game_state.players:
                         player = game_state.players[attacker_id]
+                        old_level = player.level
                         player.record_missile_hit()  # 10코인 + 10EXP 즉시 지급!
+                        new_level = player.level
                         
                         if attacker_id in game_state.connected_clients:
                             await game_state.connected_clients[attacker_id].send_json({
@@ -392,12 +394,30 @@ async def game_loop():
                                 'target_max_hp': ai_drone.max_hp,
                                 'explosion_position': collision['position'],
                                 'coin_reward': 10,
-                                'exp_reward': 10
+                                'exp_reward': 10,
+                                'current_exp': player.experience,
+                                'max_exp': player.exp_to_next_level
                             })
+                            
+                            # 미사일 적중으로 레벨업 확인
+                            if new_level > old_level:
+                                new_map = MapGenerator.generate_dynamic_map(new_level)
+                                game_state.player_maps[attacker_id] = new_map
+                                
+                                await game_state.connected_clients[attacker_id].send_json({
+                                    'type': 'map_expanded',
+                                    'obstacles': new_map['obstacles'],
+                                    'map_size': new_map['map_size'],
+                                    'spawn_points': new_map['spawn_points'],
+                                    'new_level': new_level,
+                                    'message': f'🎉 레벨 {new_level}! 맵이 {new_map["map_size"]}x{new_map["map_size"]}로 확장되었습니다!'
+                                })
                         
                         # AI 사망
                         if ai_drone.hp <= 0:
+                            old_level = player.level
                             kill_reward = player.record_kill(target_id)  # 100코인 지급!
+                            new_level = player.level
                             
                             if attacker_id in game_state.connected_clients:
                                 await game_state.connected_clients[attacker_id].send_json({
@@ -406,6 +426,20 @@ async def game_loop():
                                     'rewards': kill_reward,
                                     'player_data': player.to_dict()
                                 })
+                                
+                                # 레벨업 확인 및 맵 확장!
+                                if new_level > old_level:
+                                    new_map = MapGenerator.generate_dynamic_map(new_level)
+                                    game_state.player_maps[attacker_id] = new_map
+                                    
+                                    await game_state.connected_clients[attacker_id].send_json({
+                                        'type': 'map_expanded',
+                                        'obstacles': new_map['obstacles'],
+                                        'map_size': new_map['map_size'],
+                                        'spawn_points': new_map['spawn_points'],
+                                        'new_level': new_level,
+                                        'message': f'🎉 레벨 {new_level}! 맵이 {new_map["map_size"]}x{new_map["map_size"]}로 확장되었습니다!'
+                                    })
                             
                             asyncio.create_task(respawn_ai(target_id, 5.0))
             
@@ -447,8 +481,8 @@ async def respawn_ai(ai_id: str, delay: float):
     await asyncio.sleep(delay)
     if ai_id in game_state.ai_drones:
         # AI의 소유자 찾기
-        owner_id = '_'.join(ai_id.split('_')[:2])  # "ai_player_XXX" → "player_XXX"
-        owner_id = owner_id.replace('ai_', '')
+        owner_and_index = ai_id[3:]
+        owner_id = owner_and_index.rsplit('_', 1)[0]
         
         if owner_id in game_state.player_maps:
             ai_drone = game_state.ai_drones[ai_id]

@@ -782,6 +782,11 @@
                     playerData.coins = pData.coins;
                     playerData.position = { x: pData.position[0], y: pData.position[1], z: pData.position[2] };
                     
+                    // EXP 바 초기화
+                    const expPercent = (playerData.exp / pData.exp_to_next_level) * 100;
+                    document.getElementById('exp-bar').style.width = expPercent + '%';
+                    document.getElementById('exp-text').textContent = `${playerData.exp} / ${pData.exp_to_next_level} EXP`;
+                    
                     if (playerDrone) playerDrone.position.set(...pData.position);
                     
                     // 바닥 생성
@@ -852,16 +857,31 @@
                     }
                     if (msg.explosion_position) createExplosion(msg.explosion_position);
                     playerData.coins += msg.coin_reward || 0;
-                    showNotification(`🎯 적중! +10코인 +10EXP`, 1200);
+                    playerData.exp = msg.current_exp || playerData.exp;
+                    
+                    // EXP 바 업데이트
+                    const expPercent = (playerData.exp / msg.max_exp) * 100;
+                    document.getElementById('exp-bar').style.width = expPercent + '%';
+                    document.getElementById('exp-text').textContent = `${playerData.exp} / ${msg.max_exp} EXP`;
+                    
+                    showNotification(`🎯 적중! +10💰 +10✨EXP`, 1200);
                     
                 } else if (msg.type === 'kill_confirmed') {
                     const rewards = msg.rewards;
+                    const oldLevel = playerData.level;
                     playerData.coins = msg.player_data.coins;
                     playerData.level = msg.player_data.level;
                     playerData.exp = msg.player_data.experience;
+                    
+                    // EXP 바 업데이트
+                    const expPercent = (playerData.exp / msg.player_data.exp_to_next_level) * 100;
+                    document.getElementById('exp-bar').style.width = expPercent + '%';
+                    document.getElementById('exp-text').textContent = `${playerData.exp} / ${msg.player_data.exp_to_next_level} EXP`;
+                    
                     document.getElementById('kill-count').textContent = rewards.session_kills;
                     document.getElementById('score-value').textContent = msg.player_data.session_score;
-                    showNotification(`🔥 킬! +100코인!`, 2500);
+                    
+                    showNotification(`🔥 킬! +100💰 +${rewards.exp_reward}✨EXP`, 2500);
                     
                 } else if (msg.type === 'player_died') {
                     showNotification('💀 사망! 3초 후 리스폰...', 3000);
@@ -896,9 +916,16 @@
                 } else if (msg.type === 'map_expanded') {
                     // 맵 확장!
                     currentMapSize = msg.map_size;
+                    playerData.level = msg.new_level || playerData.level;
+                    
                     createGround(currentMapSize);
                     createObstacles(msg.obstacles);
-                    showNotification(msg.message, 4000);
+                    
+                    // 대형 알림
+                    showNotification(`🎉 레벨 ${playerData.level}!`, 1500);
+                    setTimeout(() => {
+                        showNotification(`🗺️ 맵: ${currentMapSize}x${currentMapSize}`, 3000);
+                    }, 1600);
                     
                 } else if (msg.type === 'upgrade_result') {
                     if (msg.success) {

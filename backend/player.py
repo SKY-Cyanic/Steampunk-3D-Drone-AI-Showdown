@@ -340,7 +340,7 @@ class Player:
             'username': self.username,
             'level': self.level,
             'experience': self.experience,
-            'exp_to_next': self.get_experience_to_next_level(),
+            'exp_to_next_level': self.get_experience_to_next_level(),  # 통일!
             'rating': self.rating,
             'tier': self.get_tier(),
             'tier_progress': self.get_tier_progress(),
