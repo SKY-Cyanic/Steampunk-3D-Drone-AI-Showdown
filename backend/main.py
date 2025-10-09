@@ -163,15 +163,15 @@ async def websocket_endpoint(websocket: WebSocket):
                         })
                         asyncio.create_task(respawn_player(client_id, 3.0))
                 
-                # AI 업데이트
+                # AI 업데이트 (모든 AI 드론!)
                 current_time = time.time()
                 ai_updates = []
                 
-                for ai_id in ai_ids:
-                    if ai_id not in game_state.ai_drones:
-                        continue
-                    
-                    ai_drone = game_state.ai_drones[ai_id]
+                # client_id에 속한 모든 AI 드론 찾기
+                player_ai_drones = {aid: drone for aid, drone in game_state.ai_drones.items() 
+                                   if aid.startswith(f"ai_{client_id}_")}
+                
+                for ai_id, ai_drone in player_ai_drones.items():
                     
                     # AI 물리 충돌 체크 (중요!)
                     ai_collision = game_state.physics_engine.check_obstacle_collision(

@@ -1,0 +1,781 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚁 3D 드론 AI 대전 - 고퀄리티</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Segoe UI', Arial, sans-serif; 
+            overflow: hidden; 
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+        }
+        #game-container { width: 100vw; height: 100vh; position: relative; }
+        
+        /* 고급 HP 바 */
+        .hp-bar-container {
+            position: absolute;
+            width: 400px;
+            height: 50px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 40, 0.95));
+            border-radius: 30px;
+            padding: 6px;
+            border: 3px solid rgba(74, 222, 128, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6), 0 0 40px rgba(74, 222, 128, 0.3);
+            backdrop-filter: blur(20px);
+        }
+        
+        .hp-bar-fill {
+            height: 100%;
+            border-radius: 24px;
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .hp-bar-fill::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+        
+        #player-hp-bar { top: 20px; left: 50%; transform: translateX(-50%); }
+        
+        /* AI HP 컨테이너 */
+        #ai-hp-container {
+            position: absolute;
+            bottom: 20px;
+            left: 55%;
+            transform: translateX(-50%);
+            width: 450px;
+            max-height: 250px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .ai-hp-bar {
+            width: 100%;
+            height: 40px;
+            background: linear-gradient(135deg, rgba(139, 0, 0, 0.8), rgba(69, 0, 0, 0.9));
+            border-radius: 20px;
+            padding: 5px;
+            margin: 6px 0;
+            border: 2px solid rgba(239, 68, 68, 0.6);
+            box-shadow: 0 4px 16px rgba(239, 68, 68, 0.4);
+        }
+        
+        .ai-hp-fill {
+            height: 100%;
+            border-radius: 15px;
+            background: linear-gradient(90deg, #ef4444, #dc2626, #b91c1c);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+        }
+        
+        /* 정보 패널 - 고급 */
+        #info-panel {
+            position: absolute;
+            top: 90px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(30, 30, 60, 0.95));
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 100;
+            min-width: 300px;
+            backdrop-filter: blur(20px);
+            border: 3px solid rgba(74, 222, 128, 0.5);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 60px rgba(74, 222, 128, 0.2);
+        }
+        
+        #info-panel h2 { 
+            color: #4ade80; 
+            margin-bottom: 15px;
+            font-size: 20px;
+            text-shadow: 0 0 20px rgba(74, 222, 128, 0.8);
+        }
+        
+        .stat { 
+            margin: 10px 0; 
+            display: flex; 
+            justify-content: space-between;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+        }
+        .stat .label { color: #cbd5e1; }
+        .stat .value { 
+            color: #4ade80; 
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(74, 222, 128, 0.6);
+        }
+        
+        .exp-bar-container {
+            width: 100%;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            margin-top: 12px;
+            overflow: hidden;
+            border: 2px solid rgba(74, 222, 128, 0.3);
+        }
+        
+        .exp-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4ade80, #22c55e, #16a34a);
+            transition: width 0.5s ease;
+            box-shadow: 0 0 20px rgba(74, 222, 128, 0.6);
+        }
+        
+        #score-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(40, 30, 0, 0.95));
+            color: white;
+            padding: 25px;
+            border-radius: 20px;
+            z-index: 100;
+            border: 3px solid rgba(255, 215, 0, 0.6);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 60px rgba(255, 215, 0, 0.3);
+            min-width: 220px;
+            backdrop-filter: blur(20px);
+        }
+        
+        #score-panel h2 { 
+            color: #ffd700; 
+            font-size: 20px; 
+            margin-bottom: 12px;
+            text-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        .score-value { 
+            font-size: 36px; 
+            font-weight: bold; 
+            color: #ffd700; 
+            text-align: center;
+            text-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+        }
+        
+        #upgrade-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(40, 20, 60, 0.95));
+            color: white;
+            padding: 20px;
+            border-radius: 20px;
+            z-index: 100;
+            max-width: 320px;
+            border: 3px solid rgba(147, 51, 234, 0.6);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 60px rgba(147, 51, 234, 0.3);
+            backdrop-filter: blur(20px);
+        }
+        
+        #upgrade-panel h3 { 
+            color: #a78bfa; 
+            margin-bottom: 12px;
+            text-shadow: 0 0 15px rgba(167, 139, 250, 0.8);
+        }
+        
+        .upgrade-item {
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.2), rgba(107, 33, 168, 0.3));
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid rgba(147, 51, 234, 0.4);
+        }
+        
+        .upgrade-item:hover { 
+            background: linear-gradient(135deg, rgba(147, 51, 234, 0.4), rgba(107, 33, 168, 0.5));
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(147, 51, 234, 0.5);
+        }
+        .upgrade-cost { 
+            color: #ffd700; 
+            font-weight: bold;
+            text-shadow: 0 0 10px rgba(255, 215, 0, 0.6);
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 30, 60, 0.95));
+            color: white;
+            padding: 18px;
+            border-radius: 15px;
+            font-size: 13px;
+            z-index: 100;
+            border: 3px solid rgba(96, 165, 250, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(20px);
+        }
+        
+        #controls h3 { 
+            margin-bottom: 12px; 
+            color: #60a5fa;
+            text-shadow: 0 0 15px rgba(96, 165, 250, 0.8);
+        }
+        .key {
+            background: linear-gradient(135deg, rgba(96, 165, 250, 0.3), rgba(59, 130, 246, 0.4));
+            padding: 5px 10px;
+            border-radius: 6px;
+            margin: 3px;
+            border: 2px solid rgba(96, 165, 250, 0.5);
+            display: inline-block;
+        }
+        
+        #notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(20, 20, 40, 0.98));
+            color: white;
+            padding: 30px 60px;
+            border-radius: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            border: 4px solid #4ade80;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.9), 0 0 100px rgba(74, 222, 128, 0.5);
+            text-shadow: 0 0 30px rgba(74, 222, 128, 0.8);
+            backdrop-filter: blur(30px);
+        }
+        
+        #loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-size: 28px;
+            z-index: 200;
+            text-shadow: 0 0 30px rgba(74, 222, 128, 0.8);
+        }
+        
+        #status {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: linear-gradient(135deg, rgba(0, 0, 0, 0.9), rgba(20, 20, 40, 0.95));
+            color: white;
+            padding: 12px 18px;
+            border-radius: 25px;
+            font-size: 13px;
+            z-index: 100;
+            border: 2px solid rgba(74, 222, 128, 0.5);
+            box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(15px);
+        }
+        
+        .status-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 10px;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .status-dot.green { 
+            background: #4ade80; 
+            box-shadow: 0 0 15px #4ade80, 0 0 30px #4ade80;
+        }
+        .status-dot.red { 
+            background: #ef4444; 
+            box-shadow: 0 0 15px #ef4444;
+        }
+        
+        /* 스크롤바 스타일 */
+        #ai-hp-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        #ai-hp-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        #ai-hp-container::-webkit-scrollbar-thumb {
+            background: rgba(239, 68, 68, 0.6);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="loading">🚁 고퀄리티 로딩 중...</div>
+        
+        <div id="player-hp-bar" class="hp-bar-container">
+            <div class="hp-bar-fill" id="player-hp-fill" style="width: 100%; background: linear-gradient(90deg, #4ade80, #22c55e, #16a34a);">
+                <span id="player-hp-text">100 / 100</span>
+            </div>
+        </div>
+        
+        <div id="ai-hp-container"></div>
+        
+        <div id="info-panel">
+            <h2>👤 플레이어</h2>
+            <div class="stat"><span class="label">레벨:</span><span class="value" id="player-level">1</span></div>
+            <div class="stat"><span class="label">맵 크기:</span><span class="value" id="map-size">200x200</span></div>
+            <div class="stat"><span class="label">코인:</span><span class="value" id="player-coins">0 💰</span></div>
+            <div class="exp-bar-container"><div class="exp-bar-fill" id="exp-bar" style="width: 0%;"></div></div>
+            <div class="stat" style="font-size: 12px;"><span id="exp-text">0 / 100 EXP</span></div>
+        </div>
+        
+        <div id="score-panel">
+            <h2>🏆 전투</h2>
+            <div class="stat"><span class="label">킬:</span><span class="value" id="kill-count">0</span></div>
+            <div class="stat"><span class="label">점수:</span><span class="score-value" id="score-value">0</span></div>
+        </div>
+        
+        <div id="upgrade-panel">
+            <h3>⚡ 업그레이드</h3>
+            <div class="upgrade-item" data-type="speed"><span>🚀 속도 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="armor"><span>🛡️ 방어 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="damage"><span>⚔️ 공격 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+            <div class="upgrade-item" data-type="fire_rate"><span>⚡ 연사 Lv.<span class="upgrade-level">0</span></span><span class="upgrade-cost">100 💰</span></div>
+        </div>
+        
+        <div id="controls">
+            <h3>⌨️ 조작</h3>
+            <div><span class="key">W/A/S/D</span> 이동 | <span class="key">Space</span> 상승 | <span class="key">Shift</span> 하강</div>
+            <div style="margin-top: 8px;"><span class="key">F</span> 초고속 미사일 🚀 | <span class="key">드래그</span> 카메라</div>
+        </div>
+        
+        <div id="status"><span class="status-dot red"></span><span id="status-text">연결 중...</span></div>
+        <div id="notification"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    
+    <script>
+        let scene, camera, renderer;
+        let playerDrone;
+        let aiDrones = {};
+        let obstacles = [];
+        let missiles = {};
+        let explosions = [];
+        let websocket, isConnected = false;
+        let clientId;
+        
+        let playerData = { position: {x:0, y:15, z:60}, velocity: {x:0, y:0, z:0}, hp: 100, max_hp: 100, level: 1, exp: 0, coins: 0 };
+        let aiDataMap = {};
+        let currentMapSize = 200;
+        
+        let keys = {};
+        const ACCELERATION = 0.07, MAX_SPEED = 1.2, DRAG = 0.93;
+        
+        // 카메라 회전
+        let cameraRotationX = 0, cameraRotationY = 0;
+        let isDragging = false, lastMouseX = 0, lastMouseY = 0;
+        
+        function initThreeJS() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x050810);
+            scene.fog = new THREE.FogExp2(0x050810, 0.003);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 30, 60);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            document.getElementById('game-container').appendChild(renderer.domElement);
+            
+            // 고급 조명
+            const ambientLight = new THREE.AmbientLight(0x4080c0, 0.3);
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xffffff, 1.5);
+            sunLight.position.set(100, 150, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 500;
+            sunLight.shadow.camera.left = -200;
+            sunLight.shadow.camera.right = 200;
+            sunLight.shadow.camera.top = 200;
+            sunLight.shadow.camera.bottom = -200;
+            scene.add(sunLight);
+            
+            // 다양한 포인트 라이트
+            const lightConfigs = [
+                { pos: [40, 25, 40], color: 0xff6b35, intensity: 4, distance: 100 },
+                { pos: [-50, 30, -30], color: 0x4ecdc4, intensity: 5, distance: 120 },
+                { pos: [70, 20, -70], color: 0xf39c12, intensity: 4.5, distance: 110 },
+                { pos: [-70, 25, 70], color: 0x9b59b6, intensity: 4, distance: 100 },
+                { pos: [0, 40, 0], color: 0x00ffff, intensity: 3, distance: 150 }
+            ];
+            
+            lightConfigs.forEach(({pos, color, intensity, distance}) => {
+                const light = new THREE.PointLight(color, intensity, distance);
+                light.position.set(...pos);
+                light.castShadow = true;
+                scene.add(light);
+                
+                // 발광 구체
+                const sphereGeom = new THREE.SphereGeometry(2, 16, 16);
+                const sphereMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6 });
+                const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+                sphere.position.set(...pos);
+                scene.add(sphere);
+            });
+            
+            createPlayerDrone();
+            
+            // 마우스/터치 이벤트
+            renderer.domElement.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                cameraRotationY += (e.clientX - lastMouseX) * 0.005;
+                cameraRotationX += (e.clientY - lastMouseY) * 0.005;
+                cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/6, cameraRotationX));
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            });
+            
+            renderer.domElement.addEventListener('mouseup', () => isDragging = false);
+            
+            let lastTouchX = 0, lastTouchY = 0;
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                }
+            });
+            
+            renderer.domElement.addEventListener('touchmove', (e) => {
+                if (e.touches.length === 1) {
+                    cameraRotationY += (e.touches[0].clientX - lastTouchX) * 0.005;
+                    cameraRotationX += (e.touches[0].clientY - lastTouchY) * 0.005;
+                    cameraRotationX = Math.max(-Math.PI/3, Math.min(Math.PI/6, cameraRotationX));
+                    lastTouchX = e.touches[0].clientX;
+                    lastTouchY = e.touches[0].clientY;
+                    e.preventDefault();
+                }
+            });
+            
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+            
+            console.log('✅ Three.js 고퀄리티 초기화!');
+        }
+        
+        function createGround(mapSize) {
+            // 기존 바닥 제거
+            scene.children.forEach(child => {
+                if (child.name === 'ground' || child.name === 'grid') {
+                    scene.remove(child);
+                }
+            });
+            
+            // 고급 바닥 (텍스처 패턴)
+            const groundGeom = new THREE.PlaneGeometry(mapSize, mapSize, 100, 100);
+            
+            // 높이 변화 추가
+            const positions = groundGeom.attributes.position;
+            for (let i = 0; i < positions.count; i++) {
+                const x = positions.getX(i);
+                const z = positions.getZ(i);
+                const y = Math.sin(x * 0.05) * Math.cos(z * 0.05) * 0.5;
+                positions.setY(i, y);
+            }
+            groundGeom.computeVertexNormals();
+            
+            const groundMat = new THREE.MeshStandardMaterial({ 
+                color: 0x1a1f35,
+                roughness: 0.9,
+                metalness: 0.1,
+                emissive: 0x0a0f1a,
+                emissiveIntensity: 0.2
+            });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            ground.name = 'ground';
+            scene.add(ground);
+            
+            // 고급 그리드
+            const gridHelper = new THREE.GridHelper(mapSize, 60, 0x4ecdc4, 0x2a3050);
+            gridHelper.material.opacity = 0.3;
+            gridHelper.material.transparent = true;
+            gridHelper.name = 'grid';
+            scene.add(gridHelper);
+        }
+        
+        function createPlayerDrone() {
+            playerDrone = new THREE.Group();
+            
+            // 메인 바디 (더 복잡한 형태)
+            const bodyGeom = new THREE.BoxGeometry(3, 0.8, 3);
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: 0x4ade80,
+                emissive: 0x2dd4bf,
+                emissiveIntensity: 0.6,
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.castShadow = true;
+            playerDrone.add(body);
+            
+            // 조종석 (투명 돔)
+            const cockpitGeom = new THREE.SphereGeometry(0.8, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const cockpitMat = new THREE.MeshPhysicalMaterial({
+                color: 0x4ecdc4,
+                transparent: true,
+                opacity: 0.6,
+                metalness: 0.5,
+                roughness: 0.1,
+                transmission: 0.5
+            });
+            const cockpit = new THREE.Mesh(cockpitGeom, cockpitMat);
+            cockpit.position.y = 0.6;
+            playerDrone.add(cockpit);
+            
+            // 4개의 암 + 프로펠러
+            const armPositions = [[1.5,0,1.5], [-1.5,0,1.5], [1.5,0,-1.5], [-1.5,0,-1.5]];
+            armPositions.forEach(([x,y,z]) => {
+                // 암
+                const armGeom = new THREE.CylinderGeometry(0.15, 0.2, 2, 8);
+                const armMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x1e293b,
+                    metalness: 0.8,
+                    roughness: 0.3
+                });
+                const arm = new THREE.Mesh(armGeom, armMat);
+                arm.position.set(x, y, z);
+                arm.castShadow = true;
+                playerDrone.add(arm);
+                
+                // 프로펠러 (더 복잡하게)
+                const propGroup = new THREE.Group();
+                
+                // 프로펠러 허브
+                const hubGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 12);
+                const hubMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x374151,
+                    metalness: 0.9,
+                    roughness: 0.1
+                });
+                const hub = new THREE.Mesh(hubGeom, hubMat);
+                propGroup.add(hub);
+                
+                // 프로펠러 블레이드 (4개)
+                for (let i = 0; i < 4; i++) {
+                    const bladeGeom = new THREE.BoxGeometry(1.2, 0.05, 0.15);
+                    const bladeMat = new THREE.MeshStandardMaterial({ 
+                        color: 0x1e293b,
+                        metalness: 0.7,
+                        roughness: 0.3
+                    });
+                    const blade = new THREE.Mesh(bladeGeom, bladeMat);
+                    blade.rotation.y = (Math.PI / 2) * i;
+                    propGroup.add(blade);
+                }
+                
+                propGroup.position.set(x, y + 1.2, z);
+                propGroup.userData.speed = Math.random() * 0.3 + 0.6;
+                playerDrone.add(propGroup);
+            });
+            
+            // LED 라이트들
+            const ledPositions = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]];
+            ledPositions.forEach((pos, i) => {
+                const ledGeom = new THREE.SphereGeometry(0.1, 8, 8);
+                const ledMat = new THREE.MeshStandardMaterial({
+                    color: i < 2 ? 0xff0000 : 0x00ff00,
+                    emissive: i < 2 ? 0xff0000 : 0x00ff00,
+                    emissiveIntensity: 2
+                });
+                const led = new THREE.Mesh(ledGeom, ledMat);
+                led.position.set(...pos);
+                playerDrone.add(led);
+                
+                const ledLight = new THREE.PointLight(i < 2 ? 0xff0000 : 0x00ff00, 1, 5);
+                ledLight.position.set(...pos);
+                playerDrone.add(ledLight);
+            });
+            
+            // 메인 라이트
+            const mainLight = new THREE.PointLight(0x4ade80, 3, 20);
+            mainLight.position.set(0, 1, 0);
+            playerDrone.add(mainLight);
+            
+            playerDrone.position.set(0, 15, 60);
+            scene.add(playerDrone);
+        }
+        
+        function createAIDrone(aiData) {
+            const aiDrone = new THREE.Group();
+            
+            // 메인 바디
+            const bodyGeom = new THREE.BoxGeometry(3, 0.8, 3);
+            const bodyMat = new THREE.MeshStandardMaterial({ 
+                color: 0xef4444,
+                emissive: 0xdc2626,
+                emissiveIntensity: 0.6,
+                metalness: 0.9,
+                roughness: 0.2
+            });
+            const body = new THREE.Mesh(bodyGeom, bodyMat);
+            body.castShadow = true;
+            aiDrone.add(body);
+            
+            // 조종석
+            const cockpitGeom = new THREE.SphereGeometry(0.8, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2);
+            const cockpitMat = new THREE.MeshPhysicalMaterial({
+                color: 0xff6b6b,
+                transparent: true,
+                opacity: 0.6,
+                metalness: 0.5,
+                roughness: 0.1,
+                transmission: 0.5
+            });
+            const cockpit = new THREE.Mesh(cockpitGeom, cockpitMat);
+            cockpit.position.y = 0.6;
+            aiDrone.add(cockpit);
+            
+            // 프로펠러 암
+            const armPositions = [[1.5,0,1.5], [-1.5,0,1.5], [1.5,0,-1.5], [-1.5,0,-1.5]];
+            armPositions.forEach(([x,y,z]) => {
+                const armGeom = new THREE.CylinderGeometry(0.15, 0.2, 2, 8);
+                const armMat = new THREE.MeshStandardMaterial({ 
+                    color: 0x1e293b,
+                    metalness: 0.8,
+                    roughness: 0.3
+                });
+                const arm = new THREE.Mesh(armGeom, armMat);
+                arm.position.set(x, y, z);
+                arm.castShadow = true;
+                aiDrone.add(arm);
+                
+                // 프로펠러
+                const propGroup = new THREE.Group();
+                const hubGeom = new THREE.CylinderGeometry(0.3, 0.3, 0.2, 12);
+                const hubMat = new THREE.MeshStandardMaterial({ color: 0x374151, metalness: 0.9 });
+                const hub = new THREE.Mesh(hubGeom, hubMat);
+                propGroup.add(hub);
+                
+                for (let i = 0; i < 4; i++) {
+                    const bladeGeom = new THREE.BoxGeometry(1.2, 0.05, 0.15);
+                    const bladeMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7 });
+                    const blade = new THREE.Mesh(bladeGeom, bladeMat);
+                    blade.rotation.y = (Math.PI / 2) * i;
+                    propGroup.add(blade);
+                }
+                
+                propGroup.position.set(x, y + 1.2, z);
+                propGroup.userData.speed = 0.6;
+                aiDrone.add(propGroup);
+            });
+            
+            // LED
+            const ledPositions = [[1, 0, 0], [-1, 0, 0]];
+            ledPositions.forEach(pos => {
+                const ledGeom = new THREE.SphereGeometry(0.1, 8, 8);
+                const ledMat = new THREE.MeshStandardMaterial({
+                    color: 0xff0000,
+                    emissive: 0xff0000,
+                    emissiveIntensity: 2
+                });
+                const led = new THREE.Mesh(ledGeom, ledMat);
+                led.position.set(...pos);
+                aiDrone.add(led);
+            });
+            
+            const mainLight = new THREE.PointLight(0xef4444, 3, 20);
+            aiDrone.add(mainLight);
+            
+            aiDrone.position.set(...aiData.position);
+            scene.add(aiDrone);
+            
+            return aiDrone;
+        }
+        
+        // 나머지 코드는 기존 index.html과 동일...
+        // (createObstacles, createMissile, updateMissiles 등)
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // 프로펠러 회전
+            if (playerDrone) {
+                playerDrone.children.forEach(child => {
+                    if (child instanceof THREE.Group && child.userData.speed) {
+                        child.rotation.y += child.userData.speed;
+                    }
+                });
+            }
+            
+            Object.values(aiDrones).forEach(aiDrone => {
+                aiDrone.children.forEach(child => {
+                    if (child instanceof THREE.Group && child.userData.speed) {
+                        child.rotation.y += child.userData.speed;
+                    }
+                });
+            });
+            
+            renderer.render(scene, camera);
+        }
+        
+        window.addEventListener('load', () => {
+            console.log('🎮 고퀄리티 게임 시작!');
+            initThreeJS();
+            // connectWebSocket(); // 기존 함수 사용
+            animate();
+        });
+    </script>
+</body>
+</html>
